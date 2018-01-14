@@ -3,4 +3,5 @@
 3) pip install --upgrade pip 
 4) pip install telebot
 5) pip install pytelegrambotapi
+6) apt-get install selenium3
 

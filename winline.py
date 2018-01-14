@@ -1,4 +1,5 @@
 import time
+from data import Event
 
 
 class Controller:
@@ -22,22 +23,50 @@ class Controller:
         :param url:
         :return: array of Data object
         """
-        return [url]
+        return [Event('', '', '')]
 
-    def data_analyzer(self, *args):
+    def data_analyzer(self, events):
         """
         search same pairs from data array
-        :param args:
-        :return: pairs or None
+        :param events: array of Event objects
+        :return: array of tuples, each tuple a same Event object or None
         """
-        return [args]
+        res = []
+
+        seen = set()
+        seen_add = seen.add
+        seen_twice = set(x for x in events if x in seen or seen_add(x))
+
+        print ('seen_twice = %s' % seen_twice)
+
+        for same in seen_twice:
+            pairs = ()
+            for e in events:
+                if e == same and e.url != same.url:
+                    pairs = pairs + (e, )
+                    pairs = pairs + (same, )
+            res.append(pairs)
+
+            # TODO if same object more than 2, works bad, see example_data
+
+
+        return res
 
     def telegram_connector(self, pairs):
         """
 
         :param pairs:
-        :return: 
+        :return:
         """
         pass
 
+c = Controller()
+example_data = [Event('1', 'wer', 'GGGGG'),
+      Event('4', 'wer', 'http'),
+      Event('9', 'wer', 'G'),
+      Event('1', 'wer', 'ffff'),
+      Event('9', 'wer', 'bbb'),
+      Event('11', 'wer', 'vvv'),
+      Event('1', 'wer', 'sss')]
 
+print(c.data_analyzer(example_data))
