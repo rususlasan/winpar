@@ -1,10 +1,21 @@
+import os
 import time
+
 from data import Event
+from lxml import etree
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class Controller:
 
     DATA_EXPORT_TIMEOUT_SEC = 60
+    URL = 'https://winline.ru/now/'
+    FIREFOX_BIN = '/usr/local/bin'
 
     def __init__(self):
         pass
@@ -19,11 +30,25 @@ class Controller:
 
     def export_data(self, url):
         """
-
-        :param url:
+        :param: url
         :return: array of Data object
         """
+        html = self.get_raw_html(url)
         return [Event('', '', '')]
+
+    def get_raw_html(self, url):
+        """
+        :param: url
+        :return: raw html
+        """
+        os.environ['MOZ_HEADLESS'] = '1'
+        driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
+        driver.get(self.URL)
+        wait = WebDriverWait(driver, 10)
+        # TODO choose optimal classname
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "statistic__team")))
+        data = driver.page_source
+        return data
 
     def data_analyzer(self, events):
         """

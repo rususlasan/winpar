@@ -1,7 +1,11 @@
 1) apt-get update
-2) apt install python-pip
-3) pip install --upgrade pip 
-4) pip install telebot
-5) pip install pytelegrambotapi
-6) apt-get install selenium3
+2) apt-get install python-pip3
+3) apt-get install firefox
+3) pip3 install --upgrade pip3
+4) pip3 install telebot
+5) pip3 install pytelegrambotapi
+6) pip3 install selenium
+7) geckodriver download
+8) pip3 install lxml
+
 
