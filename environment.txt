@@ -1,0 +1,6 @@
+1) apt-get update
+2) apt install python-pip
+3) pip install --upgrade pip 
+4) pip install telebot
+5) pip install pytelegrambotapi
+
