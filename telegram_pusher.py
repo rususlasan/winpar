@@ -14,6 +14,6 @@ def handle_alive_request(mes):
 
 
 def post_message_in_channel(message):
-    bot.send_message(CHANNEL_NAME, message)
+    bot.send_message(chat_id=CHANNEL_NAME, text=message)
 
 
