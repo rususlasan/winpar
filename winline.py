@@ -21,7 +21,6 @@ class Controller:
     FIREFOX_BIN = '/usr/local/bin'
 
     def __init__(self):
-        telegram_pusher.post_message_in_channel('Created Controller instance')
         pass
 
     def run(self):
@@ -100,3 +99,8 @@ example_data = [Event('1', 'wer', 'GGGGG'),
       Event('1', 'wer', 'sss')]
 
 print(c.data_analyzer(example_data))
+
+bot = telegram_pusher.bot
+bot.polling(none_stop=True)
+telegram_pusher.post_message_in_channel('TEST!!!')
+
