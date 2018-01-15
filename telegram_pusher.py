@@ -7,6 +7,10 @@ CHANNEL_NAME = '@test_winline_alert'
 bot = telebot.TeleBot(WINLINE_ALERT_BOT_TOKEN)
 
 
+def start_bot():
+    bot.polling(none_stop=True)
+
+
 @bot.message_handler(commands=['alive'])
 def handle_alive_request(mes):
     bot.send_message(mes.chat.id, 'I am here!')
