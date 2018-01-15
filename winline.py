@@ -100,7 +100,6 @@ example_data = [Event('1', 'wer', 'GGGGG'),
 
 print(c.data_analyzer(example_data))
 
-bot = telegram_pusher.bot
-bot.polling(none_stop=True)
+time.sleep(5)
 telegram_pusher.post_message_in_channel('TEST!!!')
 
