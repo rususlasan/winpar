@@ -90,7 +90,6 @@ class Controller:
         pass
 
 
-telegram_pusher.start_bot()
 c = Controller()
 example_data = [Event('1', 'wer', 'GGGGG'),
       Event('4', 'wer', 'http'),
