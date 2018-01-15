@@ -1,7 +1,10 @@
 import os
 import time
 
+import telegram_pusher
+
 from data import Event
+
 from lxml import etree
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,10 +21,11 @@ class Controller:
     FIREFOX_BIN = '/usr/local/bin'
 
     def __init__(self):
+        telegram_pusher.post_message_in_channel('Created Controller instance')
         pass
 
     def run(self):
-        while(True):
+        while True:
             data = self.export_data('some_urp')
             pairs = self.data_analyzer(data)
             if pairs:
