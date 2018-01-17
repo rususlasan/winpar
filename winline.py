@@ -1,8 +1,8 @@
 import os
 import time
 
-import telegram_pusher
 import config
+from telegram_pusher import post_message_in_channel
 
 from config import logger
 from data import Event
@@ -18,7 +18,8 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class Controller:
 
-    FIREFOX_BIN = '/usr/local/bin'
+    FIREFOX_BIN = '/usr/bin/firefox'
+    URL = config.WINLINE_LIVE_URL
 
     def __init__(self):
         logger.info('Start application...')
@@ -32,16 +33,7 @@ class Controller:
                 self.telegram_connector(pairs)
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
 
-    def parse_data_to_events(self, url):
-        """
-        get raw html, find some info and create Events object
-        :param: url
-        :return: array of Data object
-        """
-        html = self.get_raw_html(url)
-        return [Event('', '', '')]
-
-    def get_raw_html(self, url):
+    def get_data(self):
         """
         :param: url
         :return: raw html
@@ -50,11 +42,15 @@ class Controller:
         os.environ['MOZ_HEADLESS'] = '1'
         driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
         driver.get(self.URL)
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 5)
         # TODO choose optimal classname
         wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "statistic__team")))
-        data = driver.page_source
-        return data
+        # import ipdb; ipdb.set_trace()
+        # наброски:
+        driver.find_elements_by_class_name('table_item')  # Поиск всех ключевых элементов на странице
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # эта штука промотает внис ровно на один экран (аналог Pagedown)
+        driver.find_element_by_class_name('partners brand')  # Имя класса футера. Будем скроллить до тех пор пока футер не будет виден
+        return
 
     def data_analyzer(self, events):
         """
@@ -89,9 +85,10 @@ class Controller:
             urls = []
             for event in pair:
                 urls.append(event.url)
-            telegram_pusher.post_message_in_channel('\n'.join(urls))
+            post_message_in_channel('\n'.join(urls))
 
 
-time.sleep(5)
-telegram_pusher.post_message_in_channel('test message from app!!!')
+if __name__ == "__main__":
+    time.sleep(5)
+    post_message_in_channel('test message from app!!!')
 
