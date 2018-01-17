@@ -2,6 +2,7 @@ import os
 import time
 
 import telegram_pusher
+import config
 
 from data import Event
 
@@ -16,8 +17,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class Controller:
 
-    DATA_EXPORT_TIMEOUT_SEC = 60
-    URL = 'https://winline.ru/now/'
     FIREFOX_BIN = '/usr/local/bin'
 
     def __init__(self):
@@ -25,11 +24,11 @@ class Controller:
 
     def run(self):
         while True:
-            data = self.export_data('some_urp')
+            data = self.export_data(config.WINLINE_LIVE_URL)
             pairs = self.data_analyzer(data)
             if pairs:
                 self.telegram_connector(pairs)
-            time.sleep(self.DATA_EXPORT_TIMEOUT_SEC)
+            time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
 
     def export_data(self, url):
         """
@@ -65,7 +64,7 @@ class Controller:
         seen_add = seen.add
         seen_twice = set(x for x in events if x in seen or seen_add(x))
 
-        print ('seen_twice = %s' % seen_twice)
+        print('seen_twice = %s' % seen_twice)
 
         for same in seen_twice:
             pairs = ()
@@ -76,7 +75,6 @@ class Controller:
             res.append(pairs)
 
             # TODO if same object more than 2, works bad, see example_data
-
 
         return res
 
@@ -101,5 +99,5 @@ example_data = [Event('1', 'wer', 'GGGGG'),
 print(c.data_analyzer(example_data))
 
 time.sleep(5)
-telegram_pusher.post_message_in_channel('TEST!!!')
+telegram_pusher.post_message_in_channel('test message from app!!!')
 
