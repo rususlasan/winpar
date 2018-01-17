@@ -6,6 +6,9 @@ bot = telebot.TeleBot(config.WINLINE_BOT_TOKEN)
 
 
 def post_message_in_channel(message):
-    bot.send_message(chat_id=config.WINLINE_ALERT_CHANNEL_NAME, text=message)
+    try:
+        bot.send_message(chat_id=config.WINLINE_ALERT_CHANNEL_NAME, text='[BOT] %s' % message)
+    except Exception as e:
+        config.logger.error('Could not send message in channel: %s' % e)
 
 

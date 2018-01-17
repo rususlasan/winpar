@@ -4,13 +4,14 @@ import time
 import telegram_pusher
 import config
 
+from config import logger
 from data import Event
 
-from lxml import etree
+from lxml import etree  # ????
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
-from selenium.webdriver.support.select import Select
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary  # ????
+from selenium.webdriver.support.select import Select  # ????
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -20,6 +21,7 @@ class Controller:
     FIREFOX_BIN = '/usr/local/bin'
 
     def __init__(self):
+        logger.info('Start application...')
         pass
 
     def run(self):
@@ -84,7 +86,7 @@ class Controller:
         :param pairs:
         :return:
         """
-        pass
+        telegram_pusher.post_message_in_channel('\n'.join(pairs))
 
 
 c = Controller()
