@@ -32,8 +32,9 @@ class Controller:
                 self.telegram_connector(pairs)
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
 
-    def export_data(self, url):
+    def parse_data_to_events(self, url):
         """
+        get raw html, find some info and create Events object
         :param: url
         :return: array of Data object
         """
@@ -45,6 +46,7 @@ class Controller:
         :param: url
         :return: raw html
         """
+        # TODO add try, catch, logging
         os.environ['MOZ_HEADLESS'] = '1'
         driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
         driver.get(self.URL)
