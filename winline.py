@@ -66,17 +66,13 @@ class Controller:
         seen_add = seen.add
         seen_twice = set(x for x in events if x in seen or seen_add(x))
 
-        print('seen_twice = %s' % seen_twice)
-
-        for same in seen_twice:
-            pairs = ()
+        for duplicate in seen_twice:
+            same_events = [duplicate]
             for e in events:
-                if e == same and e.url != same.url:
-                    pairs = pairs + (e, )
-                    pairs = pairs + (same, )
-            res.append(pairs)
+                if duplicate == e and duplicate.url != e.url:
+                    same_events.append(e)
 
-            # TODO if same object more than 2, works bad, see example_data
+            res.append(same_events)
 
         return res
 
@@ -86,19 +82,13 @@ class Controller:
         :param pairs:
         :return:
         """
-        telegram_pusher.post_message_in_channel('\n'.join(pairs))
+        # get url from each event
+        for pair in pairs:
+            urls = []
+            for event in pair:
+                urls.append(event.url)
+            telegram_pusher.post_message_in_channel('\n'.join(urls))
 
-
-c = Controller()
-example_data = [Event('1', 'wer', 'GGGGG'),
-      Event('4', 'wer', 'http'),
-      Event('9', 'wer', 'G'),
-      Event('1', 'wer', 'ffff'),
-      Event('9', 'wer', 'bbb'),
-      Event('11', 'wer', 'vvv'),
-      Event('1', 'wer', 'sss')]
-
-print(c.data_analyzer(example_data))
 
 time.sleep(5)
 telegram_pusher.post_message_in_channel('test message from app!!!')
