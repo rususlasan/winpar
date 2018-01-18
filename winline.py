@@ -21,7 +21,10 @@ class Controller:
 
     def __init__(self):
         logger.info('Start application...')
-        self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
+        # os.environ['MOZ_HEADLESS'] = '1'
+        self.driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                        executable_path='/home/ruslansh/soft/browsers/geckodriver')
+        # self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
         self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
@@ -39,7 +42,6 @@ class Controller:
         :param: url
         :return: raw html
         """
-        os.environ['MOZ_HEADLESS'] = '1'
         driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
         driver.get(self.URL)
         wait = WebDriverWait(driver, 5)
@@ -53,22 +55,33 @@ class Controller:
 
     def get_data2(self):
         """
-
-        :return: raw element of each event
+        :return: raw html of element for each event
         """
-        self.driver.get('https://winline.ru/now')
-        # wait until element is visible in DOM
-        self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
+        try:
+            self.driver.get('https://winline.ru/now')
+            # wait until element is visible in DOM
+            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
+        except Exception as e:
+            logger.error('Could not load url {url}: {err}'.format(url=config.WINLINE_LIVE_URL, err=e))
+            return None
 
         uniq = set()
         uniq_raw_html = set()
         start_time = time.time()
         elapsed_time = 0
-        while elapsed_time < config.DATA_EXPORT_TIMEOUT_SEC:
-            current_finds = self.driver.find_elements_by_class_name('table__item')
-            uniq |= set(current_finds)  # add new element from current_finds to uniq
+        while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
+            # search all events placed in page
+            try:
+                current_finds = self.driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
+            except Exception as e:
+                logger.error('Could not find element with class name {class_name}: {err}'
+                             .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
 
             new_events = set(current_finds) - uniq
+            uniq |= set(current_finds)
+
+            logger.info('current_finds - %d, new_events - %d, uniq - %d' %
+                        (len(current_finds), len(new_events), len(uniq)))
             if new_events:
                 for element in uniq:
                     uniq_raw_html.add(element.get_attribute('innerHTML'))
@@ -76,11 +89,17 @@ class Controller:
                 logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
-            shift = 4 if len(current_finds) > 8 else len(current_finds)/3  # why 8, why /3 ????
+            shift = 4 if len(current_finds) > 4 else len(current_finds)/3  # why 8, why /3 ????
             last_element = current_finds[-shift]
+            # moving action
+            try:
+                logger.info('Moving to element')
+                ActionChains(self.driver).move_to_element(last_element).perform()
+            except Exception as e:
+                logger.error('Could not move to the provided element: {err}'.format(err=e))
+                return uniq_raw_html
 
-            ActionChains(self.driver).move_to_element(last_element).perform()
-            # time.sleep(5)
+            time.sleep(5)
             elapsed_time = time.time() - start_time
         else:
             logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
@@ -129,6 +148,6 @@ class Controller:
 
 
 if __name__ == "__main__":
-    Controller.get_data()
+    Controller().get_data2()
     # post_message_in_channel('test message from app!!!')
 
