@@ -67,6 +67,7 @@ class Controller:
         events = []
         start_time = time.time()
         elapsed_time = 0
+        previous_finds = []
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             # search all events placed in page
             try:
@@ -84,7 +85,6 @@ class Controller:
                         (len(current_finds), len(new_events), len(uniq)))
             if new_events:
                 for el in new_events:
-                    # uniq_raw_html.add(element.get_attribute('innerHTML'))
                     events += [self.parse_element_to_event(el)]
             else:
                 logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
@@ -95,7 +95,11 @@ class Controller:
             # moving action
             try:
                 logger.info('Moving to element')
-                ActionChains(self.driver).move_to_element(last_element).perform()
+                if current_finds == previous_finds:
+                    raise Exception
+                # ActionChains(self.driver).move_to_element(last_element).perform()
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                previous_finds = current_finds
             except Exception as e:
                 logger.error('Could not move to the provided element: {err}'.format(err=e))
                 return events
