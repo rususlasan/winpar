@@ -24,7 +24,6 @@ class Controller:
         # os.environ['MOZ_HEADLESS'] = '1'
         self.driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                         executable_path='/usr/bin/geckodriver')
-        # self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
         self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
@@ -35,22 +34,6 @@ class Controller:
             if pairs:
                 self.telegram_connector(pairs)
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
-
-    def get_data(self):
-        """
-        :param: url
-        :return: raw html
-        """
-        driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
-        driver.get(self.URL)
-        wait = WebDriverWait(driver, 5)
-        # TODO choose optimal classname
-        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "statistic__team")))
-        # import ipdb; ipdb.set_trace()
-        # наброски:
-        driver.find_elements_by_class_name('table_item')  # Поиск всех ключевых элементов на странице
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # эта штука промотает внис ровно на один экран (аналог Pagedown)
-        driver.find_element_by_class_name('partners brand')  # Имя класса футера. Будем скроллить до тех пор пока футер не будет виден
 
     def get_data2(self):
         """
@@ -79,10 +62,6 @@ class Controller:
             new_events = set(current_finds) - uniq
             uniq |= set(current_finds)
 
-            # здесь вызвать какой нибудь метод типа some_method(arr of element) return events
-
-            logger.info('current_finds - %d, new_events - %d, uniq - %d' %
-                        (len(current_finds), len(new_events), len(uniq)))
             if new_events:
                 for el in new_events:
                     events += [self.parse_element_to_event(el)]
@@ -90,11 +69,9 @@ class Controller:
                 logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
-            shift = 4 if len(current_finds) > 4 else len(current_finds)/3  # why 8, why /3 ????
-            last_element = current_finds[-shift]
             # moving action
             try:
-                logger.info('Moving to element')
+                logger.info('Moving to next document')
                 if current_finds == previous_finds:
                     raise Exception
                 # ActionChains(self.driver).move_to_element(last_element).perform()
