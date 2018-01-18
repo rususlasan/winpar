@@ -30,8 +30,7 @@ class Controller:
 
     def __run(self):
         while True:
-            data = self.get_data2()     # list of raw HTML of each element
-            events = self.__parse_raw_html_to_events(data)
+            events = self.get_data2()
             pairs = self.data_analyzer(events)
             if pairs:
                 self.telegram_connector(pairs)
@@ -58,8 +57,7 @@ class Controller:
         :return: raw html of element for each event
         """
         try:
-            self.driver.get('https://winline.ru/now')
-            # wait until element is visible in DOM
+            self.driver.get(config.WINLINE_LIVE_URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
         except Exception as e:
             logger.error('Could not load url {url}: {err}'.format(url=config.WINLINE_LIVE_URL, err=e))
@@ -67,6 +65,7 @@ class Controller:
 
         uniq = set()
         uniq_raw_html = set()
+        events = []
         start_time = time.time()
         elapsed_time = 0
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
@@ -79,6 +78,8 @@ class Controller:
 
             new_events = set(current_finds) - uniq
             uniq |= set(current_finds)
+
+            # здесь вызвать какой нибудь метод типа some_method(arr of element) return events
 
             logger.info('current_finds - %d, new_events - %d, uniq - %d' %
                         (len(current_finds), len(new_events), len(uniq)))
