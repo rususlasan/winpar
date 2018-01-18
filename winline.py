@@ -46,6 +46,7 @@ class Controller:
         try:
             self.driver.get(config.WINLINE_LIVE_URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
+            logger.info('Url %s successfully downloaded.' % config.WINLINE_LIVE_URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}'.format(url=config.WINLINE_LIVE_URL, err=e))
             return None
@@ -62,6 +63,7 @@ class Controller:
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
+                return None
 
             new_events = set(current_finds) - uniq
             uniq |= set(current_finds)
