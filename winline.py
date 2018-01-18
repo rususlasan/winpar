@@ -7,11 +7,8 @@ from telegram_pusher import post_message_in_channel
 from config import logger
 from data import Event
 
-from lxml import etree  # ????
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary  # ????
-from selenium.webdriver.support.select import Select  # ????
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -24,16 +21,15 @@ class Controller:
 
     def __init__(self):
         logger.info('Start application...')
-        pass
-
-    def __init_variables(self):
         self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
         self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+        # self.driver.implicitly_wait(30) # seconds
 
     def __run(self):
         while True:
-            data = self.get_data()
-            pairs = self.data_analyzer(data)
+            data = self.get_data2()     # list of raw HTML of each element
+            events = self.__parse_raw_html_to_events(data)
+            pairs = self.data_analyzer(events)
             if pairs:
                 self.telegram_connector(pairs)
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
@@ -56,35 +52,46 @@ class Controller:
         driver.find_element_by_class_name('partners brand')  # Имя класса футера. Будем скроллить до тех пор пока футер не будет виден
 
     def get_data2(self):
-        self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "table__item")))
+        """
+
+        :return: raw element of each event
+        """
         self.driver.get('https://winline.ru/now')
+        # wait until element is visible in DOM
+        self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
 
         uniq = set()
-        while True:
+        uniq_raw_html = set()
+        start_time = time.time()
+        elapsed_time = 0
+        while elapsed_time < config.DATA_EXPORT_TIMEOUT_SEC:
             current_finds = self.driver.find_elements_by_class_name('table__item')
             uniq |= set(current_finds)  # add new element from current_finds to uniq
-            new_events = set(current_finds) - uniq
-            last_element = current_finds[-1]
 
-            if not new_events:
+            new_events = set(current_finds) - uniq
+            if new_events:
+                for element in uniq:
+                    uniq_raw_html.add(element.get_attribute('innerHTML'))
+            else:
                 logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
+            shift = 4 if len(current_finds) > 8 else len(current_finds)/3  # why 8, why /3 ????
+            last_element = current_finds[-shift]
+
             ActionChains(self.driver).move_to_element(last_element).perform()
-            time.sleep(5)
-            # TODO заменить "while True" на что-нибудь не бесконечное, отрегулировать sleep
-        return list(uniq)
+            # time.sleep(5)
+            elapsed_time = time.time() - start_time
+        else:
+            logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
+                           % config.DATA_SEARCHING_TIMEOUT_SEC)
+        return list(uniq_raw_html)
+
+    def __parse_raw_html_to_events(self, raw_html):
+        return [Event('', '', '')]
 
     @staticmethod
-    def get_data_from_element_in_dom(webelements):
-        urls = []
-        for el in webelements:
-            url = el.find_elements_by_xpath(".//a")[0]
-            urls.append(url.get_attribute('innerHTML'))
-
-        return urls
-
-    def data_analyzer(self, events):
+    def data_analyzer(events):
         """
         search same pairs from data array
         :param events: array of Event objects
@@ -106,7 +113,8 @@ class Controller:
 
         return res
 
-    def telegram_connector(self, pairs):
+    @staticmethod
+    def telegram_connector(pairs):
         """
 
         :param pairs:
@@ -121,7 +129,6 @@ class Controller:
 
 
 if __name__ == "__main__":
-    print('START PROGRAMM')
     Controller.get_data()
     # post_message_in_channel('test message from app!!!')
 
