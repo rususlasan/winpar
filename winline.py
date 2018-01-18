@@ -23,7 +23,7 @@ class Controller:
         logger.info('Start application...')
         # os.environ['MOZ_HEADLESS'] = '1'
         self.driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                        executable_path='/home/ruslansh/soft/browsers/geckodriver')
+                                        executable_path='/usr/bin/geckodriver')
         # self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
         self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
@@ -64,7 +64,6 @@ class Controller:
             return None
 
         uniq = set()
-        uniq_raw_html = set()
         events = []
         start_time = time.time()
         elapsed_time = 0
@@ -84,8 +83,9 @@ class Controller:
             logger.info('current_finds - %d, new_events - %d, uniq - %d' %
                         (len(current_finds), len(new_events), len(uniq)))
             if new_events:
-                for element in uniq:
-                    uniq_raw_html.add(element.get_attribute('innerHTML'))
+                for el in new_events:
+                    # uniq_raw_html.add(element.get_attribute('innerHTML'))
+                    events += [self.parse_element_to_event(el)]
             else:
                 logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
                 break
@@ -98,17 +98,24 @@ class Controller:
                 ActionChains(self.driver).move_to_element(last_element).perform()
             except Exception as e:
                 logger.error('Could not move to the provided element: {err}'.format(err=e))
-                return uniq_raw_html
+                return events
 
             time.sleep(5)
             elapsed_time = time.time() - start_time
         else:
             logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
-        return list(uniq_raw_html)
+        return events
 
-    def __parse_raw_html_to_events(self, raw_html):
-        return [Event('', '', '')]
+    def parse_element_to_event(self, element):
+        try:
+            url = element.get_attribute("href")
+            title = element.get_attribute("title")
+            first, second = title.split(" - ")
+            return Event(first, second, url)
+        except:
+            # TODO handle exception
+            import ipdb; ipdb.set_trace()
 
     @staticmethod
     def data_analyzer(events):
