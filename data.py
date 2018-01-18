@@ -19,11 +19,11 @@ class Event:
     def eq_by_url(self, other):
         return self.url == other.url
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return (self.first_member + self.second_member).__hash__()
 
-    def __repr__(self) -> str:
-        return '%s - %s: %s' % (self.first_member, self.second_member, self.url)
+    def __repr__(self):
+        return '{} - {}: {}'.format(self.first_member, self.second_member, self.url)
 
     @property
     def first_member(self):

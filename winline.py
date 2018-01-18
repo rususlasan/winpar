@@ -41,7 +41,7 @@ class Controller:
 
     def get_data(self):
         """
-        :return: raw html of element for each event
+        :return: list of event objects
         """
         try:
             self.driver.get(config.WINLINE_LIVE_URL)
@@ -55,7 +55,7 @@ class Controller:
         events = []
         start_time = time.time()
         elapsed_time = 0
-        previous_finds = []
+
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             # search all events placed in page
             try:
@@ -72,39 +72,40 @@ class Controller:
                 for el in new_events:
                     events += [self.parse_element_to_event(el)]
             else:
-                logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
+                logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
-            # moving action
+            # scroll down by one screen
             try:
-                logger.info('Moving to next document')
-                if current_finds == previous_finds:
-                    raise Exception
-                # ActionChains(self.driver).move_to_element(last_element).perform()
+                logger.info('Scroll down')
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                previous_finds = current_finds
             except Exception as e:
-                logger.error('Could not move to the provided element: {err}'.format(err=e))
-                return events
+                logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
-            time.sleep(5)
             elapsed_time = time.time() - start_time
         else:
             logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
+        self.driver.close()
         return events
 
-    def parse_element_to_event(self, element):
+    @staticmethod
+    def parse_element_to_event(element):
+        """
+            extract data from DOM-element
+            :param element: DOM-object
+            :return: event object
+        """
         try:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            logger.info('created: %s | %s - %s' % (first, second, url))
-            return Event(first, second, url)
+            logger.info('created: {} | {} - {}'.format(first, second, url))
+            ev = Event(first, second, url)
+            return ev
         except Exception as e:
-            logger.error('Could not get attribute: {err}'.format(err=e))
-            # TODO handle exception
-            import ipdb; ipdb.set_trace()
+            logger.error('Could not execute parse element: {err}'.format(err=e))
+
 
     @staticmethod
     def data_analyzer(events):
