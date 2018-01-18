@@ -26,7 +26,11 @@ class Controller:
         logger.info('Start application...')
         pass
 
-    def run(self):
+    def __init_variables(self):
+        self.driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
+        self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+
+    def __run(self):
         while True:
             data = self.get_data()
             pairs = self.data_analyzer(data)
@@ -38,7 +42,7 @@ class Controller:
         """
         :param: url
         :return: raw html
-        # TODO add try, catch, logging
+        """
         os.environ['MOZ_HEADLESS'] = '1'
         driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
         driver.get(self.URL)
@@ -50,33 +54,35 @@ class Controller:
         driver.find_elements_by_class_name('table_item')  # Поиск всех ключевых элементов на странице
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # эта штука промотает внис ровно на один экран (аналог Pagedown)
         driver.find_element_by_class_name('partners brand')  # Имя класса футера. Будем скроллить до тех пор пока футер не будет виден
-        return []
-        """
-        driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
-        wait = WebDriverWait(driver, 60)
-        driver.get('https://winline.ru/now')
-        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "table__item")))
+
+    def get_data2(self):
+        self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "table__item")))
+        self.driver.get('https://winline.ru/now')
 
         uniq = set()
         while True:
-            print('len uniq = %d' % len(uniq))
-            previous_uniq_len = len(uniq)
-            current_finds = driver.find_elements_by_class_name('table__item')
-            print('len current_finds=%d' % len(current_finds))
+            current_finds = self.driver.find_elements_by_class_name('table__item')
+            uniq |= set(current_finds)  # add new element from current_finds to uniq
+            new_events = set(current_finds) - uniq
             last_element = current_finds[-1]
-            uniq |= set(current_finds)      # запихивает в uniq элементы из currnet_element(которых в uniq еще нет)
-            new_uniq_len = len(uniq)
-            if new_uniq_len == previous_uniq_len:       # если равны - значит новых эллементов не найдено
-                print('scrolled down....')
-                print('total find %d events each element has type - %s' % (len(uniq), type(uniq.pop())))
-                time.sleep(10)
-                driver.close()
+
+            if not new_events:
+                logger.info('scrolled down....\nTotal find events - %d' % len(uniq))
                 break
-            # driver.move_to_element(last_element)
-            ActionChains(driver).move_to_element(last_element).perform()
-            time.sleep(15)      # спин на всякий случай после скрола
-            # TODO заменить "while True" на что-нибудь не бесконечнок, отрегулировать sleep
+
+            ActionChains(self.driver).move_to_element(last_element).perform()
+            time.sleep(5)
+            # TODO заменить "while True" на что-нибудь не бесконечное, отрегулировать sleep
         return list(uniq)
+
+    @staticmethod
+    def get_data_from_element_in_dom(webelements):
+        urls = []
+        for el in webelements:
+            url = el.find_elements_by_xpath(".//a")[0]
+            urls.append(url.get_attribute('innerHTML'))
+
+        return urls
 
     def data_analyzer(self, events):
         """
@@ -115,6 +121,7 @@ class Controller:
 
 
 if __name__ == "__main__":
-    time.sleep(5)
+    print('START PROGRAMM')
+    Controller.get_data()
     # post_message_in_channel('test message from app!!!')
 

@@ -11,9 +11,11 @@ SEND_MESSAGE_ATTEMPT_MAX = 5
 # winline data scrapping parameters
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
 DATA_EXPORT_TIMEOUT_SEC = 300
+WAIT_ELEMENT_TIMEOUT_SEC = 60
 
 # system settings
-PATH_TO_LOGS = '/var/log/winline.log'
+# PATH_TO_LOGS = '/var/log/winline.log'
+PATH_TO_LOGS = './winline.log'
 
 # logger settings
 logger = logging.getLogger()
