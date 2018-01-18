@@ -20,22 +20,26 @@ class Controller:
     URL = config.WINLINE_LIVE_URL
 
     def __init__(self):
-        logger.info('Start application...')
-        # os.environ['MOZ_HEADLESS'] = '1'
+        logger.info('==================== Start application... ====================')
+        post_message_in_channel('I am here and parse!!!')
+        os.environ['MOZ_HEADLESS'] = '1'
         self.driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                         executable_path='/usr/bin/geckodriver')
         self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
-    def __run(self):
+    def run(self):
         while True:
-            events = self.get_data2()
+            events = self.get_data()
+            if not events:
+                logger.warning('events is None!!!')
+                continue
             pairs = self.data_analyzer(events)
             if pairs:
                 self.telegram_connector(pairs)
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
 
-    def get_data2(self):
+    def get_data(self):
         """
         :return: raw html of element for each event
         """
@@ -93,8 +97,10 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
+            logger.info('created: %s | %s - %s' % (first, second, url))
             return Event(first, second, url)
-        except:
+        except Exception as e:
+            logger.error('Could not get attribute: {err}'.format(err=e))
             # TODO handle exception
             import ipdb; ipdb.set_trace()
 
@@ -137,6 +143,6 @@ class Controller:
 
 
 if __name__ == "__main__":
-    Controller().get_data2()
+    Controller().run()
     # post_message_in_channel('test message from app!!!')
 

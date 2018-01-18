@@ -21,7 +21,7 @@ PATH_TO_LOGS = '/var/log/winline.log'
 
 # logger settings
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)  # TODO change to INFO
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler = logging.FileHandler(PATH_TO_LOGS)
 file_handler.setLevel(logging.DEBUG)

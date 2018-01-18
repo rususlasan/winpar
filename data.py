@@ -1,4 +1,4 @@
-
+from config import logger
 
 class Event:
 
@@ -8,7 +8,13 @@ class Event:
         self._url = url
 
     def __eq__(self, other):
-        return self.first_member == other.first_member and self.second_member == other.second_member
+        straight = self.first_member == other.first_member and self.second_member == other.second_member
+        revert = self.first_member == other.second_member and self.second_member == other.first_member
+        if straight:
+            logger.info('Found same events with STRAIGHT comparing')
+        elif revert:
+            logger.info('Found same events with REVERT comparing')
+        return straight or revert
 
     def eq_by_url(self, other):
         return self.url == other.url
