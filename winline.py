@@ -14,6 +14,7 @@ from selenium.webdriver.firefox.firefox_binary import FirefoxBinary  # ????
 from selenium.webdriver.support.select import Select  # ????
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 
 
 class Controller:
@@ -27,7 +28,7 @@ class Controller:
 
     def run(self):
         while True:
-            data = self.export_data(config.WINLINE_LIVE_URL)
+            data = self.get_data()
             pairs = self.data_analyzer(data)
             if pairs:
                 self.telegram_connector(pairs)
@@ -37,7 +38,6 @@ class Controller:
         """
         :param: url
         :return: raw html
-        """
         # TODO add try, catch, logging
         os.environ['MOZ_HEADLESS'] = '1'
         driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN)
@@ -50,7 +50,33 @@ class Controller:
         driver.find_elements_by_class_name('table_item')  # Поиск всех ключевых элементов на странице
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # эта штука промотает внис ровно на один экран (аналог Pagedown)
         driver.find_element_by_class_name('partners brand')  # Имя класса футера. Будем скроллить до тех пор пока футер не будет виден
-        return
+        return []
+        """
+        driver = webdriver.Chrome(executable_path='/home/ruslansh/soft/browsers/chromedriver')
+        wait = WebDriverWait(driver, 60)
+        driver.get('https://winline.ru/now')
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "table__item")))
+
+        uniq = set()
+        while True:
+            print('len uniq = %d' % len(uniq))
+            previous_uniq_len = len(uniq)
+            current_finds = driver.find_elements_by_class_name('table__item')
+            print('len current_finds=%d' % len(current_finds))
+            last_element = current_finds[-1]
+            uniq |= set(current_finds)      # запихивает в uniq элементы из currnet_element(которых в uniq еще нет)
+            new_uniq_len = len(uniq)
+            if new_uniq_len == previous_uniq_len:       # если равны - значит новых эллементов не найдено
+                print('scrolled down....')
+                print('total find %d events each element has type - %s' % (len(uniq), type(uniq.pop())))
+                time.sleep(10)
+                driver.close()
+                break
+            # driver.move_to_element(last_element)
+            ActionChains(driver).move_to_element(last_element).perform()
+            time.sleep(15)      # спин на всякий случай после скрола
+            # TODO заменить "while True" на что-нибудь не бесконечнок, отрегулировать sleep
+        return list(uniq)
 
     def data_analyzer(self, events):
         """
@@ -90,5 +116,5 @@ class Controller:
 
 if __name__ == "__main__":
     time.sleep(5)
-    post_message_in_channel('test message from app!!!')
+    # post_message_in_channel('test message from app!!!')
 
