@@ -17,8 +17,8 @@ DATA_SEARCHING_TIMEOUT_SEC = 300    # max time that allocated for searching, if 
 DATA_EXPORT_TIMEOUT_SEC = 300       # timeout between data searching
 
 # system settings
-# PATH_TO_LOGS = '/var/log/winline.log'
-PATH_TO_LOGS = './winline.log'
+PATH_TO_LOGS = '/var/log/winline.log'
+# PATH_TO_LOGS = './winline.log'
 
 # logger settings
 logger = logging.getLogger()
