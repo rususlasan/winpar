@@ -2,7 +2,7 @@ import os
 import time
 
 import config
-from telegram_pusher import post_message_in_channel
+from telegram_pusher import TelegramPusher
 
 from config import logger
 from data import Event
@@ -11,7 +11,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 
 
 class Controller:
@@ -19,21 +18,35 @@ class Controller:
     FIREFOX_BIN = '/usr/bin/firefox'
     URL = config.WINLINE_LIVE_URL
 
-    def __init__(self):
+    def __init__(self, bot):
         logger.info('==================== Start application... ====================')
-        post_message_in_channel('I am here and parse!!!')
+        self._bot = bot
         os.environ['MOZ_HEADLESS'] = '1'
-        self.driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                        executable_path='/usr/bin/geckodriver')
-        self.wait = WebDriverWait(self.driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+        try:
+            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                             executable_path='/usr/bin/geckodriver')
+        except:
+            logger.exception('Could not initialize driver:')
+            self._driver = None
+            return
+
+        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
+    @property
+    def driver(self):
+        return self._driver
+
+    @property
+    def bot(self):
+        return self._bot
+
     def run(self):
+        logger.info('Start infinite parsing...')
         while True:
             events = self.get_data()
             if not events:
-                logger.warning('events is None!!!')
-                continue
+                logger.warning('events is empty due to errors above!!!')
             pairs = self.data_analyzer(events)
             if pairs:
                 self.telegram_connector(pairs)
@@ -44,9 +57,9 @@ class Controller:
         :return: list of event objects
         """
         try:
-            self.driver.get(config.WINLINE_LIVE_URL)
+            self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
-            logger.info('Url %s successfully downloaded.' % config.WINLINE_LIVE_URL)
+            logger.info('Url %s successfully downloaded.' % self.URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}'.format(url=config.WINLINE_LIVE_URL, err=e))
             return None
@@ -59,18 +72,21 @@ class Controller:
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             # search all events placed in page
             try:
-                current_finds = self.driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
+                current_finds = set(self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME))
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
-                return None
+                return []
 
-            new_events = set(current_finds) - uniq
-            uniq |= set(current_finds)
+            new_events = current_finds - uniq
+            uniq |= current_finds
 
             if new_events:
                 for el in new_events:
-                    events += [self.parse_element_to_event(el)]
+                    event = self.parse_element_to_event(el)
+                    if not event:
+                        continue
+                    events += [event]
             else:
                 logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
@@ -78,7 +94,7 @@ class Controller:
             # scroll down by one screen
             try:
                 logger.info('Scroll down')
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
@@ -86,26 +102,25 @@ class Controller:
         else:
             logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
-        self.driver.close()
+        self._driver.close()
         return events
 
     @staticmethod
     def parse_element_to_event(element):
         """
             extract data from DOM-element
-            :param element: DOM-object
+            :param element: DOM-object, WebElement type
             :return: event object
         """
         try:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            logger.info('created: {} | {} - {}'.format(first, second, url))
-            ev = Event(first, second, url)
-            return ev
+            logger.info('Created: {} | {} - {}'.format(first, second, url))
+            return Event(first, second, url)
         except Exception as e:
-            logger.error('Could not execute parse element: {err}'.format(err=e))
-
+            logger.error('{err}. None will be returned.'.format(err=e))
+            return None
 
     @staticmethod
     def data_analyzer(events):
@@ -130,8 +145,7 @@ class Controller:
 
         return res
 
-    @staticmethod
-    def telegram_connector(pairs):
+    def telegram_connector(self, pairs):
         """
 
         :param pairs:
@@ -142,10 +156,15 @@ class Controller:
             urls = []
             for event in pair:
                 urls.append(event.url)
-            post_message_in_channel('\n'.join(urls))
+            self._bot.post_message_in_channel('\n'.join(urls))
 
 
 if __name__ == "__main__":
-    Controller().run()
-    # post_message_in_channel('test message from app!!!')
+    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    c = Controller(bot=telegram_pusher)
+    ret = c.data_analyzer([])
+    if not c.driver:
+        logger.error('Driver was not initialized, interrupt application!')
+        exit(100)
+    c.run()
 
