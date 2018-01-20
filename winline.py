@@ -81,7 +81,9 @@ class Controller:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
                 return []
-
+            # for el in current_finds:
+            #     import ipdb; ipdb.set_trace()
+            #     htmls = {{ str(el): el.text()}}
             new_events = current_finds - uniq
             uniq |= current_finds
 
@@ -103,6 +105,7 @@ class Controller:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
             elapsed_time = time.time() - start_time
+            time.sleep(5)
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
@@ -123,6 +126,7 @@ class Controller:
             logger.info('Created: {} | {} - {}'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
+            import ipdb; ipdb.set_trace()
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
             return None
 
