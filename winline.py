@@ -27,8 +27,7 @@ class Controller:
                                              executable_path='/usr/bin/geckodriver')
         except:
             logger.exception('Could not initialize driver:')
-            self._driver = None
-            return
+            exit(111)
 
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
@@ -44,25 +43,30 @@ class Controller:
     def run(self):
         logger.info('Start infinite parsing...')
         while True:
+            logger.info('Begin iteration...')
             events = self.get_data()
-            if not events:
+
+            if events:
+                pairs = self.data_analyzer(events)
+                if pairs:
+                    logger.info('Same events were found({count}).'.format(count=len(pairs)))
+                    self.telegram_connector(pairs)
+            else:
                 logger.warning('events is empty due to errors above!!!')
-            pairs = self.data_analyzer(events)
-            if pairs:
-                self.telegram_connector(pairs)
+
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
 
     def get_data(self):
         """
-        :return: list of event objects
+        :return: list of Event objects or empty list if some error occured
         """
         try:
             self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
             logger.info('Url %s successfully downloaded.' % self.URL)
         except Exception as e:
-            logger.error('Could not load url {url}: {err}'.format(url=config.WINLINE_LIVE_URL, err=e))
-            return None
+            logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
+            return []
 
         uniq = set()
         events = []
@@ -93,16 +97,16 @@ class Controller:
 
             # scroll down by one screen
             try:
-                logger.info('Scroll down')
+                logger.info('Scroll down by one screen')
                 self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
             elapsed_time = time.time() - start_time
         else:
-            logger.warning('get_data timeout %d exceeded, data has not been collected!!!'
+            logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
-        self._driver.close()
+
         return events
 
     @staticmethod
@@ -119,15 +123,15 @@ class Controller:
             logger.info('Created: {} | {} - {}'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
-            logger.error('{err}. None will be returned.'.format(err=e))
+            logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
             return None
 
     @staticmethod
     def data_analyzer(events):
         """
-        search same pairs from data array
+        search same pairs from events array
         :param events: array of Event objects
-        :return: array of tuples, each tuple a same Event object or None
+        :return: array of arrays, each tuple a same Event object or None
         """
         res = []
 
@@ -162,9 +166,5 @@ class Controller:
 if __name__ == "__main__":
     telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
     c = Controller(bot=telegram_pusher)
-    ret = c.data_analyzer([])
-    if not c.driver:
-        logger.error('Driver was not initialized, interrupt application!')
-        exit(100)
     c.run()
 

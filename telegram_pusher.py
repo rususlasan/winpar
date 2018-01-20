@@ -17,7 +17,7 @@ class TelegramPusher:
         except:
             logger.exception('Bot was not initialized!')
             exit(50)
-        if not self.bot_send_alive_message():
+        if not self.post_message_in_channel('I am here!'):
             logger.error('Bot could not send alive message, initializing failed.')
             exit(25)
 
@@ -32,9 +32,6 @@ class TelegramPusher:
     @property
     def bot(self):
         return self._bot
-
-    def bot_send_alive_message(self):
-        return self.post_message_in_channel('I am alive and parse!')
 
     def post_message_in_channel(self, message):
         """

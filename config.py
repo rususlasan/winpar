@@ -13,12 +13,12 @@ SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
-DATA_SEARCHING_TIMEOUT_SEC = 300    # max time that allocated for searching, if timeout exceeded method interrupts
+DATA_SEARCHING_TIMEOUT_SEC = 150    # max time that allocated for searching, if timeout exceeded method interrupts
 DATA_EXPORT_TIMEOUT_SEC = 300       # timeout between data searching
 
 # system settings
-PATH_TO_LOGS = '/var/log/winline.log'
-# PATH_TO_LOGS = './winline.log'
+# PATH_TO_LOGS = '/var/log/winline.log'
+PATH_TO_LOGS = './winline.log'
 
 # logger settings
 logger = logging.getLogger()
