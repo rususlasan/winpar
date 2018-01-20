@@ -140,12 +140,13 @@ class Controller:
         seen_twice = set(x for x in events if x in seen or seen_add(x))
 
         for duplicate in seen_twice:
-            same_events = [duplicate]
+            same_events = []
             for e in events:
                 if duplicate == e and duplicate.url != e.url:
                     same_events.append(e)
 
-            res.append(same_events)
+            if same_events:
+                res.append(duplicate)
 
         return res
 
