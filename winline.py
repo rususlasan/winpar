@@ -22,14 +22,6 @@ class Controller:
         logger.info('==================== Start application... ====================')
         self._bot = bot
         os.environ['MOZ_HEADLESS'] = '1'
-        try:
-            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                             executable_path='/usr/bin/geckodriver')
-        except:
-            logger.exception('Could not initialize driver:')
-            exit(111)
-
-        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
     @property
@@ -39,6 +31,15 @@ class Controller:
     @property
     def bot(self):
         return self._bot
+
+    def get_driver(self):
+        try:
+            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                             executable_path='/usr/bin/geckodriver')
+        except:
+            logger.exception('Could not initialize driver:')
+            exit(111)
+        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
 
     def run(self):
         logger.info('Start infinite parsing...')
@@ -60,6 +61,7 @@ class Controller:
         """
         :return: list of Event objects or empty list if some error occured
         """
+        self.get_driver()
         try:
             self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
@@ -99,6 +101,7 @@ class Controller:
             try:
                 logger.info('Scroll down by one screen')
                 self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
@@ -106,7 +109,7 @@ class Controller:
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
-
+        self._driver.quit()
         return events
 
     @staticmethod
