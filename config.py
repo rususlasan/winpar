@@ -2,7 +2,7 @@ import logging
 
 
 # winline telegram parameters
-WINLINE_BOT_TOKEN = '512466759:AAF0TNdRGZql7Va-gO6hDsu2691BAmVCScA'
+WINLINE_BOT_TOKEN = 'some token here'
 WINLINE_ALERT_CHANNEL_NAME = '@test_winline_alert'  # format - @CHANNEL_NAME
 
 # common telegram parameters
@@ -20,7 +20,6 @@ DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
 
 # driver settings
 FIREFOX_BIN = '/usr/bin/firefox'
-FIREFOX_EXECUTABLE = '/usr/bin/geckodrive'
 
 # system settings
 # PATH_TO_LOGS = '/var/log/winline.log'

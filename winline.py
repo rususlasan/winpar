@@ -16,7 +16,7 @@ from selenium.webdriver.support import expected_conditions as EC
 class Controller:
     
     FIREFOX_BIN = config.FIREFOX_BIN
-    FIREFOX_EXECUTABLE = config.FIREFOX_EXECUTABLE
+    # FIREFOX_EXECUTABLE = '/usr/bin/geckodriver'
     URL = config.WINLINE_LIVE_URL
 
     def __init__(self, bot):
@@ -37,7 +37,7 @@ class Controller:
     def __init_driver(self):
         try:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                             executable_path=self.FIREFOX_EXECUTABLE)
+                                             executable_path='/usr/bin/geckodriver')
         except Exception as e:
             logger.exception('Could not initialize driver: {err}'.format(err=e))
             exit(111)
