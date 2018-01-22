@@ -71,6 +71,8 @@ class Controller:
                 logger.warning('events is empty due to errors above!!!')
 
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
+            self.__bot_checker()
+
     def get_data(self):
         """
         :return: list of Event objects or empty list if some error occured
