@@ -50,7 +50,7 @@ class Controller:
             logger.info('Could not quite driver: {err}'.format(err=e))
 
     def __bot_checker(self):
-        if self._bot_check_elapsed_time - time.time() >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
+        if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
             self._bot.post_message_in_channel('I am still here!')
             self._bot_check_elapsed_time = time.time()
 
