@@ -14,22 +14,16 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 class Controller:
-
-    FIREFOX_BIN = '/usr/bin/firefox'
+    
+    FIREFOX_BIN = config.FIREFOX_BIN
+    FIREFOX_EXECUTABLE = config.FIREFOX_EXECUTABLE
     URL = config.WINLINE_LIVE_URL
 
     def __init__(self, bot):
         logger.info('==================== Start application... ====================')
         self._bot = bot
+        self._bot_check_elapsed_time = time.time()
         os.environ['MOZ_HEADLESS'] = '1'
-        try:
-            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                             executable_path='/usr/bin/geckodriver')
-        except:
-            logger.exception('Could not initialize driver:')
-            exit(111)
-
-        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
         # self.driver.implicitly_wait(30) # seconds
 
     @property
@@ -40,10 +34,32 @@ class Controller:
     def bot(self):
         return self._bot
 
+    def __init_driver(self):
+        try:
+            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                             executable_path=self.FIREFOX_EXECUTABLE)
+        except Exception as e:
+            logger.exception('Could not initialize driver: {err}'.format(err=e))
+            exit(111)
+        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+
+    def __destroy_driver(self):
+        try:
+            self._driver.quit()
+        except Exception as e:
+            logger.info('Could not quite driver: {err}'.format(err=e))
+
+    def __bot_checker(self):
+        if self._bot_check_elapsed_time - time.time() >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
+            self._bot.post_message_in_channel('I am still here!')
+            self._bot_check_elapsed_time = time.time()
+
     def run(self):
         logger.info('Start infinite parsing...')
+        counter = 1
         while True:
-            logger.info('Begin iteration...')
+            logger.info('Begin iteration #%d...' % counter)
+            counter += 1
             events = self.get_data()
 
             if events:
@@ -55,15 +71,15 @@ class Controller:
                 logger.warning('events is empty due to errors above!!!')
 
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
-
     def get_data(self):
         """
         :return: list of Event objects or empty list if some error occured
         """
+        self.__init_driver()
         try:
             self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
-            logger.info('Url %s successfully downloaded.' % self.URL)
+            logger.info('Url %s successfully loaded.' % self.URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
             return []
@@ -99,6 +115,7 @@ class Controller:
             try:
                 logger.info('Scroll down by one screen')
                 self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
@@ -106,6 +123,8 @@ class Controller:
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
+
+        self.__destroy_driver()
 
         return events
 
