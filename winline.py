@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 class Controller:
-    
+
     FIREFOX_BIN = config.FIREFOX_BIN
     # FIREFOX_EXECUTABLE = '/usr/bin/geckodriver'
     URL = config.WINLINE_LIVE_URL
