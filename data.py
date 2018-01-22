@@ -3,20 +3,27 @@ from config import logger
 class Event:
 
     def __init__(self, first_member, second_member, url):
-        self._first_member = first_member
-        self._second_member = second_member
-        self._url = url
+        self._first_member = first_member.strip()
+        self._second_member = second_member.strip()
+        self._url = url.strip()
 
     def __eq__(self, other):
         straight = self.first_member == other.first_member and self.second_member == other.second_member
         revert = self.first_member == other.second_member and self.second_member == other.first_member
+        include = (self.first_member in other.second_member and self.second_member in other.first_member) or \
+                  (self.second_member in other.first_member and self.first_member in other.second_member)
         # if compare two same events with different urls, log it info
-        if straight or revert and self.url != other.url:
-            how = 'STRAIGHT' if straight else 'REVERT'
+        if (straight or revert or include) and self.url != other.url:
+            if straight:
+                how = 'STRAIGHT'
+            elif revert:
+                how = 'REVERT'
+            else:
+                how = 'INCLUDE'
             logger.info('Found same events with {how} comparing. {first_event} and {second_event}'
                         .format(how=how, first_event=self, second_event=other))
 
-        return straight or revert
+        return straight or revert or include
 
     def eq_by_url(self, other):
         return self.url == other.url
