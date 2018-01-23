@@ -37,8 +37,7 @@ class Controller:
     def __init_driver(self):
         try:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                             executable_path='/usr/bin/geckodriver',
-                                             log_path='geckodriver.log')  # change to config.GECKODRIVER_LOG_PATH
+                                             executable_path='/usr/bin/geckodriver')
             logger.info('Driver init successfully')
         except Exception as e:
             logger.exception('Could not initialize driver: {err}'.format(err=e))
