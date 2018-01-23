@@ -1,3 +1,4 @@
+import collections
 import os
 import time
 
@@ -172,22 +173,8 @@ class Controller:
         :param events: array of Event objects
         :return: array of arrays, each tuple a same Event object or None
         """
-        res = []
-
-        seen = set()
-        seen_add = seen.add
-        seen_twice = set(x for x in events if x in seen or seen_add(x))
-
-        for duplicate in seen_twice:
-            same_events = []
-            for e in events:
-                if duplicate == e and duplicate.url != e.url:
-                    same_events.append(e)
-
-            if same_events:
-                res.append(duplicate)
-
-        return res
+        dups = (event for event, count in collections.Counter(events).items() if count > 1)
+        return [[event for event in events if event == dup] for dup in dups]
 
     def telegram_connector(self, pairs):
         """
