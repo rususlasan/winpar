@@ -1,5 +1,6 @@
 import logging
 
+
 # winline telegram parameters
 WINLINE_BOT_TOKEN = 'some token here'
 WINLINE_ALERT_CHANNEL_NAME = '@test_winline_alert'  # format - @CHANNEL_NAME
@@ -14,7 +15,11 @@ WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
 DATA_SEARCHING_TIMEOUT_SEC = 150    # max time that allocated for searching, if timeout exceeded method interrupts
-DATA_EXPORT_TIMEOUT_SEC = 300       # timeout between data searching
+DATA_EXPORT_TIMEOUT_SEC = 10        # timeout between data searching
+DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
+
+# driver settings
+FIREFOX_BIN = '/usr/bin/firefox'
 
 # system settings
 # PATH_TO_LOGS = '/var/log/winline.log'

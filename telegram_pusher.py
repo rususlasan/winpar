@@ -14,8 +14,9 @@ class TelegramPusher:
         self._channel = channel
         try:
             self._bot = telebot.TeleBot(config.WINLINE_BOT_TOKEN)
-        except:
-            logger.exception('Bot was not initialized!')
+            time.sleep(5)
+        except Exception as e:
+            logger.exception('Bot was not initialized: {err}'.format(err=e))
             exit(50)
         if not self.post_message_in_channel('I am here!'):
             logger.error('Bot could not send alive message, initializing failed.')
