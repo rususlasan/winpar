@@ -86,6 +86,7 @@ class Controller:
             logger.info('Url %s successfully loaded.' % self.URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
+            self.__destroy_driver()
             return []
 
         uniq = set()
@@ -103,6 +104,7 @@ class Controller:
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
+                self.__destroy_driver()
                 return []
 
             new_events = current_finds - uniq
@@ -139,7 +141,6 @@ class Controller:
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
                            % config.DATA_SEARCHING_TIMEOUT_SEC)
-            return events
 
         self.__destroy_driver()
 
