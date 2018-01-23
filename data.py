@@ -20,10 +20,11 @@ class Event:
 
         return straight or revert
         """
-        return self.first_member == other.first_member and self.second_member == other.second_member
+        return self.first_member == other.first_member and self.second_member == other.second_member or \
+            self.first_member == other.second_member and self.second_member == other.first_member
 
     def __hash__(self):
-        return (self.first_member + self.second_member).__hash__()
+        return ' '.join(sorted([self.first_member, self.second_member])).__hash__()
 
     def __repr__(self):
         return '{} - {}: {}'.format(self.first_member, self.second_member, self.url)
