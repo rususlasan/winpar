@@ -185,7 +185,8 @@ class Controller:
                     same_events.append(e)
 
             if same_events:
-                res.append(duplicate)
+                same_events.append(duplicate)
+                res.append(same_events)
 
         return res
 
