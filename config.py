@@ -20,6 +20,7 @@ DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
 
 # driver settings
 FIREFOX_BIN = '/usr/bin/firefox'
+GECKODRIVER_LOG_PATH = '/var/log/geckodriver.log'
 
 # system settings
 # PATH_TO_LOGS = '/var/log/winline.log'

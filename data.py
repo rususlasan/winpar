@@ -1,5 +1,6 @@
 from config import logger
 
+
 class Event:
 
     def __init__(self, first_member, second_member, url):
