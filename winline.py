@@ -36,6 +36,7 @@ class Controller:
 
     def __init_driver(self):
         try:
+            logger.info('Try init driver')
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                              executable_path='/usr/bin/geckodriver')
             logger.info('Driver init successfully')
@@ -93,9 +94,6 @@ class Controller:
         events = []
         start_time = time.time()
         elapsed_time = 0
-        # for statistic
-        errors_count = 0
-        all_parse_iteration = 0
 
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             # search all events placed in page
@@ -110,24 +108,15 @@ class Controller:
             new_events = current_finds - uniq
             uniq |= current_finds
 
-            could_not_parse = set()
-
             if new_events:
                 for el in new_events:
                     event = self.parse_element_to_event(el)
                     if not event:
-                        could_not_parse.add(el)
-                        errors_count += 1
                         continue
                     events += [event]
-                all_parse_iteration += len(new_events) - len(could_not_parse)   # for statistic
             else:
                 logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
-
-            if could_not_parse:
-                logger.warning('Could not parse {count} WebElements to Events'.format(count=len(could_not_parse)))
-                uniq -= could_not_parse  # maybe on next iteration we try to parse it elements again
 
             # scroll down by one screen
             try:
@@ -144,8 +133,7 @@ class Controller:
 
         self.__destroy_driver()
 
-        logger.info('End iteration, len_uniq={len_uniq}, all_parse_iteration={parse_iter}, errors_count={err}'
-                    .format(len_uniq=len(uniq), parse_iter=all_parse_iteration, err=errors_count))
+        logger.info('End iteration, count of find events - %d' % len(uniq))
         return events
 
     @staticmethod
@@ -159,7 +147,7 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            logger.info('Created: {} | {} - {}'.format(first, second, url))
+            # logger.info('Created: {} | {} - {}'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
