@@ -36,13 +36,22 @@ class Controller:
         return self._bot
 
     def __init_driver(self):
-        try:
-            logger.info('Try init driver')
-            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                             executable_path='/usr/bin/geckodriver')
-            logger.info('Driver init successfully')
-        except Exception as e:
-            logger.exception('Could not initialize driver: {err}'.format(err=e))
+        current_attempt = 1
+        while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX:
+            try:
+                logger.info('Try init driver. Current attempt {curr}'.format(curr=current_attempt))
+                self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                                 executable_path='/usr/bin/geckodriver')
+                logger.info('Driver init successfully. [debug] break while loop inside try except block')
+                break
+            except Exception as e:
+                current_attempt += 1
+                logger.exception('Could not initialize driver: {err}. '
+                                 '********** Current attempt {curr}. Will try again till {sec}'
+                                 .format(err=e, curr=current_attempt, sec=config.WEBDRIVER_INIT_TIMEOUT_SEC))
+                time.sleep(config.WEBDRIVER_INIT_TIMEOUT_SEC)
+        else:
+            logger.error('Exit program due to webdriver has not initialized cause errors above.')
             exit(111)
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
 
