@@ -48,7 +48,9 @@ class Controller:
     def __destroy_driver(self):
         try:
             self._driver.quit()
-            logger.info('Driver quit successfully')
+            logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox proccess...')
+            ret_code = os.system('/root/git_project/winpar/stop_gecko.sh')
+            logger.info('stop_gecko.sh finished with ret_code=%d' % ret_code)
         except Exception as e:
             logger.info('Could not quite driver: {err}'.format(err=e))
 
