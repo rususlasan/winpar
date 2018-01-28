@@ -51,7 +51,9 @@ class Controller:
                                  .format(err=e, curr=current_attempt, sec=config.WEBDRIVER_INIT_TIMEOUT_SEC))
                 time.sleep(config.WEBDRIVER_INIT_TIMEOUT_SEC)
         else:
-            logger.error('Exit program due to webdriver has not initialized cause errors above.')
+            logger.error('Exit program due to webdriver has not initialized cause errors above. '
+                         'Will try find and kill geckodriver and firefox processes...')
+            self.__run_bash_command(cmd='./stop_gecko.sh')
             exit(111)
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
 
