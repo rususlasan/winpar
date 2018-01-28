@@ -1,6 +1,3 @@
-from config import logger
-
-
 class Event:
 
     def __init__(self, first_member, second_member, url):
@@ -26,7 +23,7 @@ class Event:
         return ''.join(sorted([self.first_member, self.second_member])).__hash__()
 
     def __repr__(self):
-        return '[{}]/[{}]:[{}]'.format(self.first_member, self.second_member, self.url)
+        return '{}/{}:{}'.format(self.first_member, self.second_member, self.url)
 
     @property
     def first_member(self):

@@ -86,7 +86,7 @@ class Controller:
                 if pairs:
                     logger.info('Same events were found({count}).'.format(count=len(pairs)))
                     # self.telegram_connector(pairs)
-                    self._bot.post_message_in_channel('\n'.join(sorted(pairs)))
+                    self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
             else:
                 logger.warning('events is empty due to errors above!!!')
 
@@ -164,7 +164,7 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            logger.info('Created: [{}]/[{}]:[{}]'.format(first, second, url))
+            logger.info('Created: {}/{}:[{}]'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
