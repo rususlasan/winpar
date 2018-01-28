@@ -1,5 +1,6 @@
 import os
 import time
+import subprocess
 
 import config
 from telegram_pusher import TelegramPusher
@@ -48,11 +49,24 @@ class Controller:
     def __destroy_driver(self):
         try:
             self._driver.quit()
-            logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox proccess...')
+            logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox processes...')
+            self.__run_bash_command(cmd='./stop_gecko.sh')
             ret_code = os.system('/root/git_project/winpar/stop_gecko.sh')
             logger.info('stop_gecko.sh finished with ret_code=%d' % ret_code)
         except Exception as e:
             logger.info('Could not quite driver: {err}'.format(err=e))
+
+    @staticmethod
+    def __run_bash_command(cmd):
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        (out, err) = p.communicate()
+        ret_code = p.returncode
+        logger.info('CMD [{cmd}] finished with return code - {ret_code} and output below'
+                    .format(cmd=cmd, ret_code=ret_code))
+        if out:
+            logger.info(out.decode('utf-8'))
+        if err:
+            logger.warning(err.decode('utf-8'))
 
     def __bot_checker(self, current_iteration=-1):
         if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
@@ -71,7 +85,8 @@ class Controller:
                 pairs = self.data_analyzer(events)
                 if pairs:
                     logger.info('Same events were found({count}).'.format(count=len(pairs)))
-                    self.telegram_connector(pairs)
+                    # self.telegram_connector(pairs)
+                    self._bot.post_message_in_channel('\n'.join(sorted(pairs)))
             else:
                 logger.warning('events is empty due to errors above!!!')
 
@@ -149,7 +164,7 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            # logger.info('Created: {} | {} - {}'.format(first, second, url))
+            logger.info('Created: [{}]/[{}]:[{}]'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
