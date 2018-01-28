@@ -126,11 +126,17 @@ class Controller:
             uniq |= current_finds
 
             if new_events:
+                errors = 0
                 for el in new_events:
                     event = self.parse_element_to_event(el)
                     if not event:
+                        errors += 1
                         continue
                     events += [event]
+                if errors:
+                    percent = errors * 100 / len(new_events)
+                    logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
+                                   .format(all=len(new_events), err=errors, percent=percent))
             else:
                 logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
