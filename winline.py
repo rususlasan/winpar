@@ -129,7 +129,7 @@ class Controller:
         """
         :return: list of Event objects or empty list if some error occured
         """
-        self.__init_driver()
+        self.__init_driver_with_attempts()
         try:
             self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
