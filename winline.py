@@ -67,7 +67,7 @@ class Controller:
     @staticmethod
     def __is_thread_finished(thread, time_for_working=10, timeout_between_attempts=2):
         start = time.time()
-        while time.time() - start > time_for_working:
+        while time.time() - start < time_for_working:
             time.sleep(timeout_between_attempts)
             if thread.is_alive:
                 logger.warning('Thread is still alive')
