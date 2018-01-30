@@ -26,6 +26,7 @@ class Controller:
         self._bot = bot
         self._bot_check_elapsed_time = time.time()
         os.environ['MOZ_HEADLESS'] = '1'
+        self.is_driver_init = False
         # self.driver.implicitly_wait(30) # seconds
 
     @property
@@ -36,11 +37,20 @@ class Controller:
     def bot(self):
         return self._bot
 
+    @property
+    def is_driver_init(self):
+        return self.is_driver_init
+
+    @is_driver_init.setter
+    def is_driver_init(self, val):
+        self.is_driver_init = val
+
     def __init_driver(self):
         try:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                              executable_path='/usr/bin/geckodriver')
             logger.info('Driver init successfully. [debug] break while loop inside try except block')
+            self.is_driver_init = True
         except Exception as e:
             logger.exception('Could not initialize driver: {err}.'.format(err=e))
 
@@ -48,7 +58,7 @@ class Controller:
 
     def __init_driver_with_attempts(self):
         current_attempt = 1
-        while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX:
+        while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX and not self.is_driver_init:
             init_driver_thread = threading.Thread(target=self.__init_driver())
             init_driver_thread.start()
             logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
@@ -79,6 +89,7 @@ class Controller:
             return False
 
     def __destroy_driver(self):
+        self.is_driver_init = False
         try:
             self._driver.quit()
             logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox processes...')
