@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 import subprocess
 
 import config
@@ -36,26 +37,46 @@ class Controller:
         return self._bot
 
     def __init_driver(self):
+        try:
+            self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
+                                             executable_path='/usr/bin/geckodriver')
+            logger.info('Driver init successfully. [debug] break while loop inside try except block')
+        except Exception as e:
+            logger.exception('Could not initialize driver: {err}.'.format(err=e))
+
+        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+
+    def __init_driver_with_attempts(self):
         current_attempt = 1
         while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX:
-            try:
-                logger.info('Try init driver. Current attempt {curr}'.format(curr=current_attempt))
-                self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
-                                                 executable_path='/usr/bin/geckodriver')
-                logger.info('Driver init successfully. [debug] break while loop inside try except block')
+            init_driver_thread = threading.Thread(target=self.__init_driver())
+            init_driver_thread.start()
+            logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
+            current_attempt += 1
+            if not self.__is_thread_finished(thread=init_driver_thread):
+                logger.warning('Could not init driver in allocated time.')
+                self.__run_bash_command(cmd='./stop_gecko.sh')
+            else:
                 break
-            except Exception as e:
-                current_attempt += 1
-                logger.exception('Could not initialize driver: {err}. '
-                                 '********** Current attempt {curr}. Will try again till {sec}'
-                                 .format(err=e, curr=current_attempt, sec=config.WEBDRIVER_INIT_TIMEOUT_SEC))
-                time.sleep(config.WEBDRIVER_INIT_TIMEOUT_SEC)
         else:
-            logger.error('Exit program due to webdriver has not initialized cause errors above. '
+            logger.error('Exit program due to webdriver has not been initialized cause errors above. '
                          'Will try find and kill geckodriver and firefox processes...')
             self.__run_bash_command(cmd='./stop_gecko.sh')
             exit(111)
-        self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
+
+    @staticmethod
+    def __is_thread_finished(thread, time_for_working=10, timeout_between_attempts=2):
+        start = time.time()
+        while time.time() - start > time_for_working:
+            time.sleep(timeout_between_attempts)
+            if thread.is_alive:
+                logger.warning('Thread is still alive')
+                continue
+            else:
+                logger.info('Thread finished init driver')
+                return True
+        else:
+            return False
 
     def __destroy_driver(self):
         try:
