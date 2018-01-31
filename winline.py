@@ -1,6 +1,6 @@
 import os
 import time
-import multiprocessing
+import threading
 import subprocess
 
 import config
@@ -49,14 +49,13 @@ class Controller:
     def __init_driver_in_separate_thread_with_attempts(self):
         current_attempt = 1
         while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX:
-            p = multiprocessing.Process(target=self.__init_driver, args=())
+            t = threading.Thread(target=self.__init_driver, args=())
             logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
-            p.start()
-            p.join(10)
-            time.sleep(0.5)
-            if p.is_alive():
-                logger.warning('Init process still alive, run bash script and terminate process.')
-                p.terminate()
+            t.start()
+            t.join(10)
+            # time.sleep(0.5)
+            if t.is_alive():
+                logger.warning('Driver is still has not been initializing, run bash script and terminate process.')
                 self.__run_bash_command(cmd='./stop_gecko.sh')
                 current_attempt += 1
             else:
@@ -75,7 +74,7 @@ class Controller:
             ret_code = os.system('/root/git_project/winpar/stop_gecko.sh')
             logger.info('stop_gecko.sh finished with ret_code=%d' % ret_code)
         except Exception as e:
-            logger.info('Could not quite driver: {err}'.format(err=e))
+            logger.info('Could not destroy driver: {err}'.format(err=e))
 
     @staticmethod
     def __run_bash_command(cmd):
