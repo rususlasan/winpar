@@ -53,6 +53,7 @@ class Controller:
             logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
             p.start()
             p.join(10)
+            time.sleep(0.5)
             if p.is_alive():
                 logger.warning('Init process still alive, run bash script and terminate process.')
                 p.terminate()
