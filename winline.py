@@ -1,6 +1,6 @@
 import os
 import time
-import threading
+import multiprocessing
 import subprocess
 
 import config
@@ -26,7 +26,6 @@ class Controller:
         self._bot = bot
         self._bot_check_elapsed_time = time.time()
         os.environ['MOZ_HEADLESS'] = '1'
-        self.is_driver_init = False
         # self.driver.implicitly_wait(30) # seconds
 
     @property
@@ -37,35 +36,28 @@ class Controller:
     def bot(self):
         return self._bot
 
-    @property
-    def is_driver_init(self):
-        return self.is_driver_init
-
-    @is_driver_init.setter
-    def is_driver_init(self, val):
-        self.is_driver_init = val
-
     def __init_driver(self):
         try:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                              executable_path='/usr/bin/geckodriver')
-            logger.info('Driver init successfully. [debug] break while loop inside try except block')
-            self.is_driver_init = True
+            logger.info('Driver init successfully.')
         except Exception as e:
             logger.exception('Could not initialize driver: {err}.'.format(err=e))
 
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
 
-    def __init_driver_with_attempts(self):
+    def __init_driver_in_separate_thread_with_attempts(self):
         current_attempt = 1
-        while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX and not self.is_driver_init:
-            init_driver_thread = threading.Thread(target=self.__init_driver())
-            init_driver_thread.start()
+        while current_attempt <= config.WEBDRIEVR_INIT_ATTEMPTS_MAX:
+            p = multiprocessing.Process(target=self.__init_driver, args=())
             logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
-            current_attempt += 1
-            if not self.__is_thread_finished(thread=init_driver_thread):
-                logger.warning('Could not init driver in allocated time.')
+            p.start()
+            p.join(10)
+            if p.is_alive():
+                logger.warning('Init process still alive, run bash script and terminate process.')
+                p.terminate()
                 self.__run_bash_command(cmd='./stop_gecko.sh')
+                current_attempt += 1
             else:
                 break
         else:
@@ -74,22 +66,7 @@ class Controller:
             self.__run_bash_command(cmd='./stop_gecko.sh')
             exit(111)
 
-    @staticmethod
-    def __is_thread_finished(thread, time_for_working=10, timeout_between_attempts=2):
-        start = time.time()
-        while time.time() - start < time_for_working:
-            time.sleep(timeout_between_attempts)
-            if thread.is_alive:
-                logger.warning('Thread is still alive')
-                continue
-            else:
-                logger.info('Thread finished init driver')
-                return True
-        else:
-            return False
-
     def __destroy_driver(self):
-        self.is_driver_init = False
         try:
             self._driver.quit()
             logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox processes...')
@@ -140,7 +117,7 @@ class Controller:
         """
         :return: list of Event objects or empty list if some error occured
         """
-        self.__init_driver_with_attempts()
+        self.__init_driver_in_separate_thread_with_attempts()
         try:
             self._driver.get(self.URL)
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
