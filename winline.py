@@ -105,7 +105,7 @@ class Controller:
                 pairs = self.data_analyzer(events)
                 if pairs:
                     logger.info('Same events were found({count}).'.format(count=len(pairs)))
-                    # self.telegram_connector(pairs)
+                    self.telegram_connector(pairs)
                     self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
             else:
                 logger.warning('events is empty due to errors above!!!')
