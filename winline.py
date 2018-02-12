@@ -154,7 +154,7 @@ class Controller:
             kind_of_sports[title].click()
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
             events = self._search_of_event(title)
-            logger.info('For sport \"{title}\" found {count} events'.format(title, len(events)))
+            logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events[title] = events
 
         self._driver.quit()
