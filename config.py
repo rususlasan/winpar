@@ -17,6 +17,7 @@ WAIT_ELEMENT_TIMEOUT_SEC = 60
 DATA_SEARCHING_TIMEOUT_SEC = 150    # max time that allocated for searching, if timeout exceeded method interrupts
 DATA_EXPORT_TIMEOUT_SEC = 10        # timeout between data searching
 DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
+WINLINE_SPORT_KIND_CLASS_NAME = 'sorting__item'
 
 # driver settings
 FIREFOX_BIN = '/usr/bin/firefox'

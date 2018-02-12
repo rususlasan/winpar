@@ -99,44 +99,90 @@ class Controller:
         while True:
             logger.info('Begin iteration #%d...' % counter)
             counter += 1
-            events = self.get_data()
+            kind_of_sports_events = self.get_data()
 
-            if events:
-                pairs = self.data_analyzer(events)
-                if pairs:
-                    logger.info('Same events were found({count}).'.format(count=len(pairs)))
-                    # TODO remove one of this
-                    self.telegram_connector(pairs)
-                    self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
-            else:
-                logger.warning('events is empty due to errors above!!!')
+            for kind in kind_of_sports_events:
+                events = kind_of_sports_events[kind]
+                if events:
+                    pairs = self.data_analyzer(events)
+                    if pairs:
+                        logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
+                                    .format(count=len(pairs), kind=kind), pairs)
+                        self.telegram_connector(pairs=pairs, kind=kind)
+                        # self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
+                else:
+                    logger.warning('events is empty due to errors above!!!')
 
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
             self.__bot_checker(current_iteration=counter)
 
     def get_data(self):
         """
-        :return: list of Event objects or empty list if some error occured
+        :return: dict where
+                            key - kind of sports,
+                            value - list of Event objects or empty list.
+        Empty dict may be returned
         """
         self.__init_driver_in_separate_thread_with_attempts()
         try:
             self._driver.get(self.URL)
-            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
+            # self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
+            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
             logger.info('Url %s successfully loaded.' % self.URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
             self.__destroy_driver()
             return []
 
+        sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
+
+        kind_of_sports = {}
+        non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE']
+        # collect of interesting titles
+        for el in sport_kind_items:
+            title = el.get_attribute("title")
+            if title not in non_interest_title:
+                kind_of_sports[title] = el
+
+        kind_of_sports_events = {}
+        previous_element = None
+        # for each title of sports search events
+        for title in kind_of_sports:
+            if previous_element:
+                previous_element.click()
+            previous_element = kind_of_sports[title]
+            kind_of_sports[title].click()
+            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
+            events = self._search_of_event(title)
+            logger.info('For sport \"{title}\" found {count} events'.format(title, len(events)))
+            kind_of_sports_events[title] = events
+
+        self._driver.quit()
+        logger.info('End iteration, count of find events see below')
+
+        return kind_of_sports_events
+
+    def _search_of_event(self, title):
+        """
+        :param title: title of sport kind
+        :return: list of parse events
+        """
         uniq = set()
         events = []
         start_time = time.time()
         elapsed_time = 0
 
+        is_first_time = True
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
+            # save one second of runtime
+            if not is_first_time:
+                time.sleep(1)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
+            else:
+                is_first_time = False
             # search all events placed in page
             try:
                 current_finds = set(self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME))
+                logger.info('%s find %d events' % (title, len(current_finds)))
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
@@ -153,7 +199,7 @@ class Controller:
                     if not event:
                         errors += 1
                         continue
-                    events += [event]
+                    events.append(event)
                 if errors:
                     percent = errors * 100 / len(new_events)
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
@@ -164,20 +210,16 @@ class Controller:
 
             # scroll down by one screen
             try:
-                logger.info('Scroll down by one screen')
+                # logger.info('Trying scrolling down by one screen')
                 self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
             elapsed_time = time.time() - start_time
         else:
-            logger.warning('Timeout %d exceeded, maybe all or some data has not been collected!!!'
-                           % config.DATA_SEARCHING_TIMEOUT_SEC)
+            logger.warning('Timeout %d exceeded, maybe all or some data of %s has not been collected!!!'
+                           % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
 
-        self.__destroy_driver()
-
-        logger.info('End iteration, count of find events - %d' % len(uniq))
         return events
 
     @staticmethod
@@ -191,7 +233,7 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            logger.info('Created: {}/{}:[{}]'.format(first, second, url))
+            # logger.info('Created: {}/{}:[{}]'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
@@ -222,10 +264,11 @@ class Controller:
 
         return res
 
-    def telegram_connector(self, pairs):
+    def telegram_connector(self, pairs, kind):
         """
 
         :param pairs:
+        :param kind: kind of sport
         :return:
         """
         # get url from each event
@@ -233,7 +276,9 @@ class Controller:
             urls = []
             for event in pair:
                 urls.append(event.url)
-            self._bot.post_message_in_channel('\n'.join(urls))
+            urls = '\n'.join(urls)
+            message = '{kind}: {urls}'.format(kind=kind, urls=urls)
+            self._bot.post_message_in_channel(message)
 
 
 if __name__ == "__main__":
