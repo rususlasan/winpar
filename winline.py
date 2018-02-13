@@ -127,7 +127,7 @@ class Controller:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
             self.__destroy_driver()
             return []
-
+        
         uniq = set()
         events = []
         start_time = time.time()
