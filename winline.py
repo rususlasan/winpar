@@ -158,7 +158,6 @@ class Controller:
         self._driver.quit()
         logger.info('End iteration, count of find events see below')
 
-        exit(0)
         return kind_of_sports_events_mapping
 
     def get_kind_of_sports_elements(self):
