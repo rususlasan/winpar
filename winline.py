@@ -25,8 +25,7 @@ class Controller:
         logger.info('==================== Start application... ====================')
         self._bot = bot
         self._bot_check_elapsed_time = time.time()
-        # os.environ['MOZ_HEADLESS'] = '1'
-        # self.driver.implicitly_wait(30) # seconds
+        os.environ['MOZ_HEADLESS'] = '1'
 
     @property
     def driver(self):
@@ -126,34 +125,32 @@ class Controller:
         self.__init_driver_in_separate_thread_with_attempts()
         try:
             self._driver.get(self.URL)
-            # self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
-            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
             logger.info('Url %s successfully loaded.' % self.URL)
-
-            sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
-
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
             self.__destroy_driver()
             return []
 
-        kind_of_sports = {}  # key - string title, value - related web element
-        non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE']
-        # collect sport titles
-        for el in sport_kind_items:
-            title = el.get_attribute("title")
-            if title not in non_interest_title:
-                kind_of_sports[title] = el
+        kind_of_sports = self.get_kind_of_sports_elements()
+        if not kind_of_sports:
+            return []
 
         kind_of_sports_events_mapping = {}
         previous_element = None
+
         # for each title of sports search events
         for title in kind_of_sports:
-            if previous_element:
-                previous_element.click()
-            previous_element = kind_of_sports[title]
-            kind_of_sports[title].click()
-            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
+            self.scroll_to('0')  # scroll to the top of window
+            time.sleep(1)
+            try:
+                if previous_element:
+                    previous_element.click()
+                previous_element = kind_of_sports[title]
+                kind_of_sports[title].click()
+            except Exception as e:
+                logger.error('Want to click {title}. Could not click on the element : {err}'.format(title=title, err=e))
+                continue
+
             events = self.event_searching(title)
             logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events_mapping[title] = events
@@ -164,6 +161,27 @@ class Controller:
         exit(0)
         return kind_of_sports_events_mapping
 
+    def get_kind_of_sports_elements(self):
+        """
+
+        :return: dict where: key - string title, value - related web element
+        """
+        kind_of_sports = {}
+        try:
+            self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
+            sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
+
+            non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE', 'Трансляция на сайте']
+            # collect sport titles
+            for el in sport_kind_items:
+                title = el.get_attribute("title")
+                if title not in non_interest_title:
+                    kind_of_sports[title] = el
+        except:
+            logger.exception('Error occurred: ')
+
+        return kind_of_sports
+
     def event_searching(self, title):
         """
         :param title: title of sport kind
@@ -172,19 +190,14 @@ class Controller:
         uniq = set()
         events = []
         start_time = time.time()
-        elapsed_time = 0
 
-        is_first_time = True
         while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
-            # save one second
-            if not is_first_time:
-                time.sleep(1)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
-            else:
-                is_first_time = False
+            time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             # search all events placed in page
             try:
-                current_finds = set(self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME))
-                # logger.info('%s find %d events' % (title, len(current_finds)))
+                ev = self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
+                current_finds = set(ev)
+                logger.info('%s find %d events' % (title, len(current_finds)))
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
@@ -195,6 +208,7 @@ class Controller:
             uniq |= current_finds
 
             if new_events:
+
                 errors = 0
                 for el in new_events:
                     event = self.parse_element_to_event(el)
@@ -207,21 +221,23 @@ class Controller:
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
                                    .format(all=len(new_events), err=errors, percent=percent))
             else:
-                # logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
+                logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
-            # scroll down by one screen
-            try:
-                # logger.info('Trying scrolling down by one screen')
-                self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            except Exception as e:
-                logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
+            self.scroll_to("document.body.scrollHeight")
 
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data of %s has not been collected!!!'
                            % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
 
         return events
+
+    def scroll_to(self, to):
+        script = "window.scrollTo(0, %s);" % to
+        try:
+            self._driver.execute_script(script)
+        except Exception as e:
+            logger.error('Could not execute javascript for scrolling: {err}'.format(err=e))
 
     @staticmethod
     def parse_element_to_event(element):
@@ -283,8 +299,6 @@ class Controller:
 
 
 if __name__ == "__main__":
-    # telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
-    # c = Controller(bot=telegram_pusher)
-    # c.run()
-    Controller(bot="NONE").run()
-
+    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    c = Controller(bot=telegram_pusher)
+    c.run()
