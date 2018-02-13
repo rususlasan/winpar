@@ -99,10 +99,10 @@ class Controller:
         while True:
             logger.info('Begin iteration #%d...' % counter)
             counter += 1
-            kind_of_sports_events = self.get_data()
+            kind_of_sports_events_mapping = self.get_data()
 
-            for kind in kind_of_sports_events:
-                events = kind_of_sports_events[kind]
+            for kind in kind_of_sports_events_mapping:
+                events = kind_of_sports_events_mapping[kind]
                 if events:
                     pairs = self.data_analyzer(events)
                     if pairs:
@@ -129,22 +129,23 @@ class Controller:
             # self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_EVENT_CLASS_NAME)))
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
             logger.info('Url %s successfully loaded.' % self.URL)
+
+            sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
+
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
             self.__destroy_driver()
             return []
 
-        sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
-
-        kind_of_sports = {}
+        kind_of_sports = {}  # key - string title, value - related web element
         non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE']
-        # collect of interesting titles
+        # collect sport titles
         for el in sport_kind_items:
             title = el.get_attribute("title")
             if title not in non_interest_title:
                 kind_of_sports[title] = el
 
-        kind_of_sports_events = {}
+        kind_of_sports_events_mapping = {}
         previous_element = None
         # for each title of sports search events
         for title in kind_of_sports:
@@ -153,16 +154,16 @@ class Controller:
             previous_element = kind_of_sports[title]
             kind_of_sports[title].click()
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
-            events = self._search_of_event(title)
-            logger.info('For sport \"{title}\" found {count} events'.format(title, len(events)))
-            kind_of_sports_events[title] = events
+            events = self.event_searching(title)
+            logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
+            kind_of_sports_events_mapping[title] = events
 
         self._driver.quit()
         logger.info('End iteration, count of find events see below')
 
-        return kind_of_sports_events
+        return kind_of_sports_events_mapping
 
-    def _search_of_event(self, title):
+    def event_searching(self, title):
         """
         :param title: title of sport kind
         :return: list of parse events
@@ -174,7 +175,7 @@ class Controller:
 
         is_first_time = True
         while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
-            # save one second of runtime
+            # save one second
             if not is_first_time:
                 time.sleep(1)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             else:
