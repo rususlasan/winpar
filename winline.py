@@ -25,7 +25,7 @@ class Controller:
         logger.info('==================== Start application... ====================')
         self._bot = bot
         self._bot_check_elapsed_time = time.time()
-        os.environ['MOZ_HEADLESS'] = '1'
+        # os.environ['MOZ_HEADLESS'] = '1'
         # self.driver.implicitly_wait(30) # seconds
 
     @property
@@ -161,6 +161,7 @@ class Controller:
         self._driver.quit()
         logger.info('End iteration, count of find events see below')
 
+        exit(0)
         return kind_of_sports_events_mapping
 
     def event_searching(self, title):
@@ -174,7 +175,7 @@ class Controller:
         elapsed_time = 0
 
         is_first_time = True
-        while elapsed_time < config.DATA_SEARCHING_TIMEOUT_SEC:
+        while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             # save one second
             if not is_first_time:
                 time.sleep(1)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
@@ -183,7 +184,7 @@ class Controller:
             # search all events placed in page
             try:
                 current_finds = set(self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME))
-                logger.info('%s find %d events' % (title, len(current_finds)))
+                # logger.info('%s find %d events' % (title, len(current_finds)))
             except Exception as e:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
@@ -206,7 +207,7 @@ class Controller:
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
                                    .format(all=len(new_events), err=errors, percent=percent))
             else:
-                logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
+                # logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
             # scroll down by one screen
@@ -216,7 +217,6 @@ class Controller:
             except Exception as e:
                 logger.error('Could not execute javascript to scroll down: {err}'.format(err=e))
 
-            elapsed_time = time.time() - start_time
         else:
             logger.warning('Timeout %d exceeded, maybe all or some data of %s has not been collected!!!'
                            % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
@@ -283,7 +283,8 @@ class Controller:
 
 
 if __name__ == "__main__":
-    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
-    c = Controller(bot=telegram_pusher)
-    c.run()
+    # telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    # c = Controller(bot=telegram_pusher)
+    # c.run()
+    Controller(bot="NONE").run()
 
