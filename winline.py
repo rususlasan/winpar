@@ -161,7 +161,9 @@ class Controller:
                 logger.error('Want to click {title}. Could not click on the element : {err}'.format(title=title, err=e))
                 continue
 
-            events = self.event_searching(title)
+            # events = self.event_searching(title)
+            events = self.event_searching_by_xpath(title)
+
             logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events_mapping[title] = events
 
@@ -202,6 +204,8 @@ class Controller:
             # search all events placed in page
             ev = []
             try:
+                # ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']")
+                # htmls = [el.get_attribute('innerHTML') for el in ev]
                 ev = self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
             except Exception as e:
                 logger.exception('Could not find element with class name {class_name}: {err}.'
@@ -239,6 +243,80 @@ class Controller:
                            % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
 
         return events
+
+    def event_searching_by_xpath(self, title):
+        """
+        :param title: title of sport kind
+        :return: list of parse events
+        """
+        uniq = set()
+        events = []
+        start_time = time.time()
+        htmls = []
+        while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
+            time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
+            # search all events placed in page
+            try:
+                ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']") # also may write 2 classes
+                for el in ev:
+                    htmls.append(el.get_attribute('innerHTML'))
+
+            except Exception as e:
+                logger.exception('Could not find element with class name {class_name}: {err}.'
+                                 .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
+            finally:
+                if not ev:
+                    logger.warning('For {title} could not find any HTML elements'.format(title=title))
+                    return []
+
+            current_finds = set(htmls)
+            new_events = current_finds - uniq
+            uniq |= current_finds
+
+            if new_events:
+
+                errors = 0
+                for el in new_events:
+                    event = self.parse_html_element_to_event(el)
+                    if not event:
+                        errors += 1
+                        continue
+                    events.append(event)
+                if errors:
+                    percent = errors * 100 / len(new_events)
+                    logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
+                                   .format(all=len(new_events), err=errors, percent=percent))
+            else:
+                # logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
+                break
+
+            self.scroll_to("document.body.scrollHeight")
+
+        else:
+            logger.warning('Timeout %d exceeded, maybe all or some data of \"%s\" has not been collected!!!'
+                           % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
+
+        return events
+
+    @staticmethod
+    def parse_html_element_to_event(html):
+        import re
+        findings = re.search(r'title=\".{1,200}\"\shref=\"(/.{1,50}){1,20}\">', html)
+        if not findings:
+            logger.warning('Could not parse HTML element via regex')
+            return None
+
+        title_and_href_parts = findings.group(0).split('href=')
+
+        raw_title = title_and_href_parts[0].split('title')[1].strip()
+        raw_title = raw_title.replace('\"', '')
+        first, second = raw_title.split(' - ')
+
+        raw_href = re.sub(r'[\">]', '', title_and_href_parts[1])
+        url = 'https://winline.ru{appendix}'.format(appendix=raw_href)
+        e = Event(first_member=first, second_member=second, url=url)
+        logger.info('Created: %s' % e)
+        return e
 
     def scroll_to(self, to):
         script = "window.scrollTo(0, %s);" % to
