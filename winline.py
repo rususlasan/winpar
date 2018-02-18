@@ -24,7 +24,7 @@ class Controller:
     def __init__(self, bot):
         logger.info('==================== Start application... ====================')
         self._bot = bot
-        self._bot_check_elapsed_time = time.time()
+        self._bot_alive_message_start_time = time.time()
         os.environ['MOZ_HEADLESS'] = '1'
 
     @property
@@ -40,8 +40,8 @@ class Controller:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                              executable_path='/usr/bin/geckodriver')
             logger.info('Driver init successfully.')
-        except Exception as e:
-            logger.exception('Could not initialize driver: {err}.'.format(err=e))
+        except:
+            return
 
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
 
@@ -52,68 +52,82 @@ class Controller:
             logger.info('Start thread for driver initializing, current_attempt = %d' % current_attempt)
             t.start()
             t.join(10)
-            # time.sleep(0.5)
             if t.is_alive():
-                logger.warning('Driver is still has not been initializing, run bash script and terminate process.')
-                self.__run_bash_command(cmd='./stop_gecko.sh')
+                self.__run_bash_command(cmd='./scripts/stop_gecko.sh')
                 current_attempt += 1
             else:
                 break
         else:
-            logger.error('Exit program due to webdriver has not been initialized cause errors above. '
-                         'Will try find and kill geckodriver and firefox processes...')
-            self.__run_bash_command(cmd='./stop_gecko.sh')
+            logger.error('Exit program due to driver has not been initialized due to errors above. ')
+            self.__run_bash_command(cmd='./scripts/stop_gecko.sh')
             exit(111)
 
     def __destroy_driver(self):
         try:
             self._driver.quit()
-            logger.info('Driver quit successfully. Will try find and kill geckodriver and firefox processes...')
-            self.__run_bash_command(cmd='./stop_gecko.sh')
-            ret_code = os.system('/root/git_project/winpar/stop_gecko.sh')
-            logger.info('stop_gecko.sh finished with ret_code=%d' % ret_code)
         except Exception as e:
             logger.info('Could not destroy driver: {err}'.format(err=e))
+
+        self.__run_bash_command(cmd='./scripts/stop_gecko.sh')
 
     @staticmethod
     def __run_bash_command(cmd):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         (out, err) = p.communicate()
         ret_code = p.returncode
-        logger.info('CMD [{cmd}] finished with return code - {ret_code} and output below'
-                    .format(cmd=cmd, ret_code=ret_code))
-        if out:
-            logger.info(out.decode('utf-8'))
-        if err:
-            logger.warning(err.decode('utf-8'))
+        if ret_code != 0:
+            logger.info('CMD [{cmd}] finished with return code - {ret_code} and output below'
+                        .format(cmd=cmd, ret_code=ret_code))
+            if out:
+                logger.info(out.decode('utf-8'))
+            if err:
+                logger.warning(err.decode('utf-8'))
 
     def __bot_checker(self, current_iteration=-1):
-        if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
+        if time.time() - self._bot_alive_message_start_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
             self._bot.post_message_in_channel('I am still here! Current iteration #%d' % current_iteration)
-            self._bot_check_elapsed_time = time.time()
+            self._bot_alive_message_start_time = time.time()
 
     def run(self):
+        """
+        infinite: init driver, search events, analyze results, destroy driver
+        :return:
+        """
         logger.info('Start infinite parsing...')
         counter = 1
         while True:
             logger.info('Begin iteration #%d...' % counter)
-            counter += 1
-            kind_of_sports_events_mapping = self.get_data()
+            self.__init_driver_in_separate_thread_with_attempts()
+            events_mapping = self.get_data()
+            self.__destroy_driver()
 
-            for kind in kind_of_sports_events_mapping:
-                events = kind_of_sports_events_mapping[kind]
-                if events:
-                    pairs = self.data_analyzer(events)
-                    if pairs:
-                        logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
-                                    .format(count=len(pairs), kind=kind), pairs)
-                        self.telegram_connector(pairs=pairs, kind=kind)
-                        # self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
-                else:
-                    logger.warning('events is empty due to errors above!!!')
+            if events_mapping:
+                self.search_statistic_logging(curr_iter=counter, events_dict=events_mapping)
+
+                for kind in events_mapping:
+                    events = events_mapping[kind]
+                    if events:
+                        pairs = self.data_analyzer(events)
+                        if pairs:
+                            logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
+                                        .format(count=len(pairs), kind=kind), pairs)
+                            self.telegram_connector(pairs=pairs, kind=kind)
+                            # self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
+
+            else:
+                logger.info('Empty dict was returned')
+
+            self.__bot_checker(current_iteration=counter)
 
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
-            self.__bot_checker(current_iteration=counter)
+            counter += 1
+
+    @staticmethod
+    def search_statistic_logging(curr_iter, events_dict):
+        mes = 'Iteration #{ci} results: '.format(ci=curr_iter)
+        for key in events_dict:
+            mes += '{title}({count}), '.format(title=key, count=len(events_dict[key]))
+        logger.info(mes[0:-2])
 
     def get_data(self):
         """
@@ -122,18 +136,14 @@ class Controller:
                             value - list of Event objects or empty list.
         Empty dict may be returned
         """
-        self.__init_driver_in_separate_thread_with_attempts()
         try:
             self._driver.get(self.URL)
-            logger.info('Url %s successfully loaded.' % self.URL)
+            logger.info('Url %s loaded successfully.' % self.URL)
         except Exception as e:
             logger.error('Could not load url {url}: {err}.'.format(url=config.WINLINE_LIVE_URL, err=e))
-            self.__destroy_driver()
-            return []
+            return {}
 
-        kind_of_sports = self.get_kind_of_sports_elements()
-        if not kind_of_sports:
-            return []
+        kind_of_sports = self.get_sports_elements()
 
         kind_of_sports_events_mapping = {}
         previous_element = None
@@ -155,12 +165,9 @@ class Controller:
             logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events_mapping[title] = events
 
-        self._driver.quit()
-        logger.info('End iteration, count of find events see below')
-
         return kind_of_sports_events_mapping
 
-    def get_kind_of_sports_elements(self):
+    def get_sports_elements(self):
         """
 
         :return: dict where: key - string title, value - related web element
@@ -176,8 +183,8 @@ class Controller:
                 title = el.get_attribute("title")
                 if title not in non_interest_title:
                     kind_of_sports[title] = el
-        except:
-            logger.exception('Error occurred: ')
+        except Exception as e:
+            logger.exception('Could not get titles element or parse some element: {err}'.format(err=e))
 
         return kind_of_sports
 
@@ -193,16 +200,18 @@ class Controller:
         while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             # search all events placed in page
+            ev = []
             try:
                 ev = self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
-                current_finds = set(ev)
-                logger.info('%s find %d events' % (title, len(current_finds)))
             except Exception as e:
-                logger.error('Could not find element with class name {class_name}: {err}'
-                             .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
-                self.__destroy_driver()
-                return []
+                logger.exception('Could not find element with class name {class_name}: {err}.'
+                                 .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
+            finally:
+                if not ev:
+                    logger.warning('For {title} could not find any HTML elements'.format(title=title))
+                    return ev
 
+            current_finds = set(ev)
             new_events = current_finds - uniq
             uniq |= current_finds
 
@@ -220,13 +229,13 @@ class Controller:
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
                                    .format(all=len(new_events), err=errors, percent=percent))
             else:
-                logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
+                # logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
             self.scroll_to("document.body.scrollHeight")
 
         else:
-            logger.warning('Timeout %d exceeded, maybe all or some data of %s has not been collected!!!'
+            logger.warning('Timeout %d exceeded, maybe all or some data of \"%s\" has not been collected!!!'
                            % (config.DATA_SEARCHING_TIMEOUT_SEC, title))
 
         return events
@@ -298,6 +307,8 @@ class Controller:
 
 
 if __name__ == "__main__":
-    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
-    c = Controller(bot=telegram_pusher)
-    c.run()
+    # telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    # c = Controller(bot=telegram_pusher)
+    # c.run()
+    Controller(bot='STUB').run()
+
