@@ -177,7 +177,7 @@ class Controller:
         kind_of_sports = {}
         try:
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
-            sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)
+            sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)  # sorting__item
 
             non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE', 'Трансляция на сайте']
             # collect sport titles
@@ -257,7 +257,7 @@ class Controller:
             time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             # search all events placed in page
             try:
-                ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']") # also may write 2 classes
+                ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']") # also may write 2 classes 'table ng_scope'
                 for el in ev:
                     htmls.append(el.get_attribute('innerHTML'))
 
