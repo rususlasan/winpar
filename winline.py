@@ -100,8 +100,7 @@ class Controller:
         while True:
             logger.info('Begin iteration #%d...' % counter)
             counter += 1
-            # events = self.get_data()
-            events = ['STUB']
+            events = self.get_data()
 
             if events:
                 pairs = self.data_analyzer(events)
