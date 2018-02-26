@@ -3,7 +3,8 @@ import logging
 
 # winline telegram parameters
 WINLINE_BOT_TOKEN = 'some token here'
-WINLINE_ALERT_CHANNEL_NAME = '@test_winline_alert'  # format - @CHANNEL_NAME
+WINLINE_ALERT_CHANNEL = '@test_winline_alert'  # format - @CHANNEL_NAME
+WINLINE_ALIVE_MESSAGE_CHANNEL = '@winline_bot_alive_mes'
 
 # common telegram parameters
 SEND_MESSAGE_ATTEMPT_TIMEOUT_SEC = 10
@@ -15,7 +16,7 @@ WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
 DATA_SEARCHING_TIMEOUT_SEC = 150    # max time that allocated for searching, if timeout exceeded method interrupts
-DATA_EXPORT_TIMEOUT_SEC = 10        # timeout between data searching
+DATA_EXPORT_TIMEOUT_SEC = 120        # timeout between data searching
 DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
 
 # driver settings
