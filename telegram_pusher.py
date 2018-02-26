@@ -18,7 +18,7 @@ class TelegramPusher:
             exit(50)
         is_alive = self.post_message_in_channel('I am alive! Current iteration #1',
                                                 channel=config.WINLINE_ALIVE_MESSAGE_CHANNEL)
-        is_info = self.post_message_in_channel('I am here! Will sent alive message in \"@winline_bot_alive_mes\"',
+        is_info = self.post_message_in_channel('I am here! Alive messages will be sending in \"@winline_bot_alive_mes\"',
                                                channel=config.WINLINE_ALERT_CHANNEL)
         if not (is_alive or is_info):
             logger.error('Bot could not send start messages, initializing failed.')

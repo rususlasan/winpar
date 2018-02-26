@@ -2,22 +2,22 @@ import logging
 
 
 # winline telegram parameters
-WINLINE_BOT_TOKEN = 'some token here'
-WINLINE_ALERT_CHANNEL = '@test_winline_alert'  # format - @CHANNEL_NAME
-WINLINE_ALIVE_MESSAGE_CHANNEL = '@winline_bot_alive_mes'
+WINLINE_BOT_TOKEN = 'some token here'                     # telegram bot token
+WINLINE_ALERT_CHANNEL = '@test_winline_alert'             # found events will be sending here
+WINLINE_ALIVE_MESSAGE_CHANNEL = '@winline_bot_alive_mes'  # alive messages will be sending here
 
 # common telegram parameters
-SEND_MESSAGE_ATTEMPT_TIMEOUT_SEC = 10
-SEND_MESSAGE_ATTEMPT_MAX = 5
-SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60
+SEND_MESSAGE_ATTEMPT_TIMEOUT_SEC = 10                     # timeout before next attempt of sending message
+SEND_MESSAGE_ATTEMPT_MAX = 5                              # count of attempts for sending message in channel
+SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60                  # timeout after which alive message will be send
 
 # winline data scrapping parameters
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
-DATA_SEARCHING_TIMEOUT_SEC = 150    # max time that allocated for searching, if timeout exceeded method interrupts
-DATA_EXPORT_TIMEOUT_SEC = 120        # timeout between data searching
-DOCUMENT_SCROLL_TIMEOUT_SEC = 2     # timeout between document scrolling
+DATA_SEARCHING_TIMEOUT_SEC = 150         # max time that allocated for searching, if timeout exceeded method interrupts
+DATA_EXPORT_TIMEOUT_SEC = 120            # timeout between data searching(iteration)
+DOCUMENT_SCROLL_TIMEOUT_SEC = 2          # timeout between document scrolling
 
 # driver settings
 FIREFOX_BIN = '/usr/bin/firefox'

@@ -161,12 +161,10 @@ class Controller:
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
                                    .format(all=len(new_events), err=errors, percent=percent))
             else:
-                logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
             # scroll down by one screen
             try:
-                logger.info('Scroll down by one screen')
                 self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
             except Exception as e:
@@ -179,7 +177,6 @@ class Controller:
 
         self.__destroy_driver()
 
-        logger.info('End iteration, count of find events - %d' % len(uniq))
         return events
 
     @staticmethod
