@@ -84,9 +84,10 @@ class Controller:
                 logger.warning(err.decode('utf-8'))
 
     def __bot_checker(self, current_iteration=-1):
-        if time.time() - self._bot_alive_message_start_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
-            self._bot.post_message_in_channel('I am still here! Current iteration #%d' % current_iteration)
-            self._bot_alive_message_start_time = time.time()
+        if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
+            self._bot.post_message_in_channel(message='I am still here! Current iteration #%d' % current_iteration,
+                                              channel=config.WINLINE_ALIVE_MESSAGE_CHANNEL)
+            self._bot_check_elapsed_time = time.time()
 
     def run(self):
         """
@@ -97,6 +98,7 @@ class Controller:
         counter = 1
         while True:
             logger.info('Begin iteration #%d...' % counter)
+
             self.__init_driver_in_separate_thread_with_attempts()
             events_mapping = self.get_data()
             self.__destroy_driver()
@@ -131,10 +133,7 @@ class Controller:
 
     def get_data(self):
         """
-        :return: dict where
-                            key - kind of sports,
-                            value - list of Event objects or empty list.
-        Empty dict may be returned
+        :return: list of Event objects or empty list if some error occured
         """
         try:
             self._driver.get(self.URL)
@@ -201,6 +200,7 @@ class Controller:
 
         while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
             time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
+
             # search all events placed in page
             ev = []
             try:
@@ -227,7 +227,7 @@ class Controller:
                     if not event:
                         errors += 1
                         continue
-                    events.append(event)
+                    events += [event]
                 if errors:
                     percent = errors * 100 / len(new_events)
                     logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
@@ -260,7 +260,6 @@ class Controller:
                 ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']") # also may write 2 classes 'table ng_scope'
                 for el in ev:
                     htmls.append(el.get_attribute('innerHTML'))
-
             except Exception as e:
                 logger.exception('Could not find element with class name {class_name}: {err}.'
                                  .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
@@ -336,7 +335,7 @@ class Controller:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
             first, second = title.split(" - ")
-            # logger.info('Created: {}/{}:[{}]'.format(first, second, url))
+            logger.info('Created: {}/{}:[{}]'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
@@ -367,11 +366,10 @@ class Controller:
 
         return res
 
-    def telegram_connector(self, pairs, kind):
+    def telegram_connector(self, pairs):
         """
 
         :param pairs:
-        :param kind: kind of sport
         :return:
         """
         # get url from each event
@@ -379,9 +377,7 @@ class Controller:
             urls = []
             for event in pair:
                 urls.append(event.url)
-            urls = '\n'.join(urls)
-            message = '{kind}: {urls}'.format(kind=kind, urls=urls)
-            self._bot.post_message_in_channel(message)
+            self._bot.post_message_in_channel('\n'.join(urls))
 
 
 if __name__ == "__main__":
