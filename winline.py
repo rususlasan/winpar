@@ -222,6 +222,88 @@ class Controller:
 
         return res
 
+    @staticmethod
+    def __create_normalize_event(e_i, e_j):
+        """
+        created temp Event instance base on e_i and e_j members or None:
+        exp: e_i = Events('First', 'Second and some', 'some_url_1'),
+             e_j = Events('Second', 'Some and First', 'some_url_2')
+             will be returned: Events('First', 'Second', 'TEMP EVENT')
+        :param e_i: Event instance
+        :param e_j: Event instance
+        :return:
+        """
+        a1 = e_i.first_member
+        a2 = e_i.second_member
+        a3 = e_j.first_member
+        a4 = e_j.second_member
+        first = ''
+        second = ''
+
+        if a1 in a2 or a2 in a1:
+            first = a1 if len(a1) < len(a2) else a2
+            second = a3 if len(a3) < len(a4) else a4
+        if a1 in a3 or a3 in a1:
+            first = a1 if len(a1) < len(a3) else a3
+            second = a2 if len(a2) < len(a4) else a4
+        if a1 in a4 or a4 in a1:
+            first = a1 if len(a1) < len(a4) else a4
+            second = a2 if len(a2) < len(a3) else a3
+
+        if not first or not second:
+            return None
+
+        ev = Event(first_member=first, second_member=second, url='TEMP_EVENT')
+        # print('Created: [{ev}]'.format(ev=ev))
+        return ev
+
+    @staticmethod
+    def search_duplicate_events(events):
+        """
+        return dict where key - normalized Event, value - array of duplicate that match it this normalize Event
+        :param events: list of Event objects
+        :return:
+        """
+        temp_impl = dict()  # key - Event instance, value - list of Event that eq_with_include with key
+
+        compared = []
+        i = 0
+        while i < len(events):
+            j = 0
+
+            while j < len(events):
+                e_i = events[i]
+                e_j = events[j]
+
+                u_i = e_i.url
+                u_j = e_j.url
+
+                j += 1
+
+                if j - 1 == i:
+                    continue
+
+                if sorted([u_i, u_j]) in compared:
+                    continue
+                else:
+                    compared.append(sorted([u_i, u_j]))
+
+                if e_i.eq_as_normalize_member(e_j):
+
+                    temp_ev = Controller.__create_normalize_event(e_i, e_j)
+
+                    if temp_ev not in temp_impl:
+                        temp_impl[temp_ev] = [e_i, e_j]
+                    elif e_j not in temp_impl[temp_ev] or \
+                            e_j.url not in [e.url for e in temp_impl[temp_ev]]:
+                        temp_impl[temp_ev].append(e_j)
+
+            i += 1
+
+        logger.debug('Duplicate events mapping: {dup_map}'.format(dup_map=temp_impl))
+
+        return temp_impl
+
     def telegram_connector(self, pairs):
         """
 

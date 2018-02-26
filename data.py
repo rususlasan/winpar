@@ -41,4 +41,22 @@ class Event:
     def url(self, url):
         self.url = url
 
+    def eq_as_normalize_member(self, other, is_url_comparing=False):
+        """
+        compare with check that some str maybe in another string ("Some Team" == "Some Team(some info)"),
+        also compare url
+        :param other: Event instance for comparing
+        :param is_url_comparing: if True - Event's urls will be compared too
+        :return:
+        """
+        url_influence = True if not is_url_comparing else self.url == other.url
+
+        f1 = self.first_member
+        s1 = self.second_member
+        f2 = other.first_member
+        s2 = other.second_member
+
+        return ((f1 in f2 or f2 in f1) and (s1 in s2 or s2 in s1)) or \
+               ((f1 in s2 or s2 in f1) and (s1 in f2 or f2 in s1)) and url_influence
+
 
