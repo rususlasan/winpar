@@ -90,7 +90,8 @@ class Controller:
 
     def __bot_checker(self, current_iteration=-1):
         if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
-            self._bot.post_message_in_channel('I am still here! Current iteration #%d' % current_iteration)
+            self._bot.post_message_in_channel(message='I am still here! Current iteration #%d' % current_iteration,
+                                              channel=config.WINLINE_ALIVE_MESSAGE_CHANNEL)
             self._bot_check_elapsed_time = time.time()
 
     def run(self):
@@ -99,15 +100,16 @@ class Controller:
         while True:
             logger.info('Begin iteration #%d...' % counter)
             counter += 1
-            events = self.get_data()
+            # events = self.get_data()
+            events = ['STUB']
 
             if events:
                 pairs = self.data_analyzer(events)
                 if pairs:
-                    logger.info('Same events were found({count}).'.format(count=len(pairs)))
-                    # TODO remove one of this
-                    self.telegram_connector(pairs)
-                    self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
+                    info = '\n'.join([p.__repr__() for p in pairs])
+                    logger.info('Same events were found({count}): {output}.'.format(count=len(pairs), output=info))
+
+                    self._bot.post_message_in_channel(info, channel=config.WINLINE_ALERT_CHANNEL)
             else:
                 logger.warning('events is empty due to errors above!!!')
 
@@ -141,7 +143,7 @@ class Controller:
                 logger.error('Could not find element with class name {class_name}: {err}'
                              .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
                 self.__destroy_driver()
-                return []
+                return events
 
             new_events = current_finds - uniq
             uniq |= current_finds
@@ -237,7 +239,6 @@ class Controller:
 
 
 if __name__ == "__main__":
-    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN)
     c = Controller(bot=telegram_pusher)
     c.run()
-
