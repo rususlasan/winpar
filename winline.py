@@ -101,6 +101,7 @@ class Controller:
             logger.info('Begin iteration #%d...' % counter)
             counter += 1
             events = self.get_data()
+            logger.info('Found {count} events.'.format(count=len(events)))
 
             if events:
                 pairs = self.data_analyzer(events)
