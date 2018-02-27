@@ -24,8 +24,8 @@ class Controller:
     def __init__(self, bot):
         logger.info('==================== Start application... ====================')
         self._bot = bot
-        self._bot_alive_message_start_time = time.time()
-        os.environ['MOZ_HEADLESS'] = '1'
+        self._bot_current_elapsed_time = time.time()
+        #os.environ['MOZ_HEADLESS'] = '1'
 
     @property
     def driver(self):
@@ -40,7 +40,8 @@ class Controller:
             self._driver = webdriver.Firefox(firefox_binary=self.FIREFOX_BIN,
                                              executable_path='/usr/bin/geckodriver')
             logger.info('Driver init successfully.')
-        except:
+        except Exception as e:
+            logger.error('Could not initialized web driver. {err}'.format(err=e))
             return
 
         self.wait = WebDriverWait(self._driver, config.WAIT_ELEMENT_TIMEOUT_SEC)
@@ -84,10 +85,10 @@ class Controller:
                 logger.warning(err.decode('utf-8'))
 
     def __bot_checker(self, current_iteration=-1):
-        if time.time() - self._bot_check_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
+        if time.time() - self._bot_current_elapsed_time >= config.SEND_ALIVE_MESSAGE_TIMEOUT_SEC:
             self._bot.post_message_in_channel(message='I am still here! Current iteration #%d' % current_iteration,
                                               channel=config.WINLINE_ALIVE_MESSAGE_CHANNEL)
-            self._bot_check_elapsed_time = time.time()
+            self._bot_current_elapsed_time = time.time()
 
     def run(self):
         """
@@ -109,6 +110,7 @@ class Controller:
                 for kind in events_mapping:
                     events = events_mapping[kind]
                     if events:
+                        logger.debug('search duplicate in ')
                         pairs = self.data_analyzer(events)
                         if pairs:
                             logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
@@ -133,7 +135,7 @@ class Controller:
 
     def get_data(self):
         """
-        :return: list of Event objects or empty list if some error occured
+        :return: dict where, key - kind of sport title, value - related Event instances
         """
         try:
             self._driver.get(self.URL)
@@ -149,19 +151,25 @@ class Controller:
 
         # for each title of sports search events
         for title in kind_of_sports:
-            self.scroll_to('0')  # scroll to the top of window
-            time.sleep(1)
+            self.scroll_to('0')  # scroll to the top of the window
+            logger.info('SLEEPING BEFORE CLICKING ON {title} - 10 SEC'.format(title=title))
+            time.sleep(10)
             try:
                 if previous_element:
+                    logger.info('SLEEP 5 sec after previous element clicking')
                     previous_element.click()
-                previous_element = kind_of_sports[title]
-                kind_of_sports[title].click()
+                    time.sleep(5)
+                current_element = kind_of_sports[title]
+                previous_element = current_element
+                current_element.click()
+                logger.info('SLEEPING AFTER CLICKING {title} 10 SEC'.format(title=title))
+                time.sleep(10)
             except Exception as e:
                 logger.error('Want to click {title}. Could not click on the element : {err}'.format(title=title, err=e))
                 continue
 
-            # events = self.event_searching(title)
-            events = self.event_searching_by_xpath(title)
+            events = self.event_searching(title)             # MAIN LINE
+            # events = self.event_searching_by_xpath(title)  # ALTERNATIVE
 
             logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events_mapping[title] = events
@@ -178,7 +186,7 @@ class Controller:
             self.wait.until(EC.visibility_of_element_located((By.CLASS_NAME, config.WINLINE_SPORT_KIND_CLASS_NAME)))
             sport_kind_items = self._driver.find_elements_by_class_name(config.WINLINE_SPORT_KIND_CLASS_NAME)  # sorting__item
 
-            non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE', 'Трансляция на сайте']
+            non_interest_title = ['Показать все', 'elst.TRANSLATION_ON_SITE', 'Трансляция на сайте', '']
             # collect sport titles
             for el in sport_kind_items:
                 title = el.get_attribute("title")
@@ -189,6 +197,7 @@ class Controller:
 
         return kind_of_sports
 
+    # !!! MAIN LINE !!!
     def event_searching(self, title):
         """
         :param title: title of sport kind
@@ -199,13 +208,15 @@ class Controller:
         start_time = time.time()
 
         while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
-            time.sleep(2)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
+            logger.info('SLEEPING BEFORE SEARCHING EVENTS OR AFTER SCROLLING 10 SEC')
+            time.sleep(10)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
 
             # search all events placed in page
             ev = []
             try:
                 # ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']")
                 # htmls = [el.get_attribute('innerHTML') for el in ev]
+                logger.debug('Search events for title {title}'.format(title=title))
                 ev = self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
             except Exception as e:
                 logger.exception('Could not find element with class name {class_name}: {err}.'
@@ -213,7 +224,7 @@ class Controller:
             finally:
                 if not ev:
                     logger.warning('For {title} could not find any HTML elements'.format(title=title))
-                    return ev
+                    return events
 
             current_finds = set(ev)
             new_events = current_finds - uniq
@@ -244,6 +255,7 @@ class Controller:
 
         return events
 
+    # !!! ALTERNATIVE !!!
     def event_searching_by_xpath(self, title):
         """
         :param title: title of sport kind
@@ -366,18 +378,16 @@ class Controller:
 
         return res
 
-    def telegram_connector(self, pairs):
+    def telegram_connector(self, pairs, kind):
         """
 
-        :param pairs:
+        :param pairs: array of arrays: [[ev1, ev2],...]
         :return:
         """
         # get url from each event
         for pair in pairs:
-            urls = []
-            for event in pair:
-                urls.append(event.url)
-            self._bot.post_message_in_channel('\n'.join(urls))
+            mes = '{kind}: {events)'.format('\n'.join([e.__repr__() for e in pair]))
+            self._bot.post_message_in_channel(message=mes, channel=config.WINLINE_ALERT_CHANNEL)
 
 
 if __name__ == "__main__":

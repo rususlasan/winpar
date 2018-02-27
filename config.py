@@ -14,6 +14,7 @@ SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60                  # timeout after which 
 # winline data scrapping parameters
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
+WINLINE_SPORT_KIND_CLASS_NAME = 'sorting__item'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
 DATA_SEARCHING_TIMEOUT_SEC = 150         # max time that allocated for searching, if timeout exceeded method interrupts
 DATA_EXPORT_TIMEOUT_SEC = 120            # timeout between data searching(iteration)
