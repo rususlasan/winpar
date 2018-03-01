@@ -41,7 +41,7 @@ class Event:
     def url(self, url):
         self.url = url
 
-    def eq_as_normalize_member(self, other, is_url_comparing=False):
+    def eq_with_include(self, other, is_url_comparing=False):
         """
         compare with check that some str maybe in another string ("Some Team" == "Some Team(some info)"),
         also compare url

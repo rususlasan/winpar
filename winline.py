@@ -25,7 +25,7 @@ class Controller:
         logger.info('==================== Start application... ====================')
         self._bot = bot
         self._bot_current_elapsed_time = time.time()
-        #os.environ['MOZ_HEADLESS'] = '1'
+        os.environ['MOZ_HEADLESS'] = '1'
 
     @property
     def driver(self):
@@ -110,14 +110,19 @@ class Controller:
                 for kind in events_mapping:
                     events = events_mapping[kind]
                     if events:
-                        logger.debug('search duplicate in ')
-                        pairs = self.data_analyzer(events)
+                        # first algorithm
+                        pairs = Controller.data_analyzer(events)
                         if pairs:
                             logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
                                         .format(count=len(pairs), kind=kind), pairs)
                             self.telegram_connector(pairs=pairs, kind=kind)
-                            # self._bot.post_message_in_channel('\n'.join([p.__repr__() for p in pairs]))
-
+                        # second algorithm
+                        pairs = Controller.search_duplicate_events(events)
+                        if pairs:
+                            logger.info('[NEW ALGORITHM] Same events were found({count}) in sport \"{kind}\". '
+                                        'There are: \n{pairs}'
+                                        .format(count=len(pairs), kind=kind), pairs)
+                            self.telegram_connector(pairs=pairs, kind=kind, info='NEW ALGORITHM')
             else:
                 logger.info('Empty dict was returned')
 
@@ -358,7 +363,7 @@ class Controller:
         """
         search same pairs from events array
         :param events: array of Event objects
-        :return: array of arrays, each tuple a same Event object or None
+        :return: array of arrays, each a same Events objects or None
         """
         res = []
 
@@ -378,21 +383,105 @@ class Controller:
 
         return res
 
-    def telegram_connector(self, pairs, kind):
+    # !!! ALTERNATIVE ANALYZER !!!
+    @staticmethod
+    def search_duplicate_events(events):
+        """
+        Collect dict where key - normalized Event, value - array of duplicate that match it this normalize Event
+        and then made array of values of this dict
+        :param events: list of Event objects
+        :return: array of arrays, each a same Events objects or None
+        """
+        temp_impl = dict()  # key - Event instance, value - list of Event that eq_with_include with key
+
+        compared = []
+        i = 0
+        while i < len(events):
+
+            j = 0
+            while j < len(events):
+                if j - 1 == i:
+                    continue
+
+                e_i = events[i]
+                e_j = events[j]
+
+                u_i = e_i.url
+                u_j = e_j.url
+
+                j += 1
+
+                if sorted([u_i, u_j]) in compared:
+                    continue
+                else:
+                    compared.append(sorted([u_i, u_j]))
+
+                if e_i.eq_with_include(e_j):
+
+                    temp_ev = Controller.create_normalize_event(e_i, e_j)
+
+                    if temp_ev not in temp_impl:
+                        temp_impl[temp_ev] = [e_i, e_j]
+                    elif e_j not in temp_impl[temp_ev] or \
+                            e_j.url not in [e.url for e in temp_impl[temp_ev]]:
+                        temp_impl[temp_ev].append(e_j)
+
+            i += 1
+
+        res = []
+        if temp_impl:
+            for key in temp_impl:
+                res.append(temp_impl[key])
+
+        return res
+
+    @staticmethod
+    def create_normalize_event(e_i, e_j):
+        """
+        created temp Event instance base on e_i and e_j members or None:
+        exp: e_i = Events('First', 'Second and some', 'some_url_1'),
+             e_j = Events('Second', 'Some and First', 'some_url_2')
+             will be returned: Events('First', 'Second', 'TEMP EVENT')
+        :param e_i: Event instance
+        :param e_j: Event instance
+        :return:
+        """
+        a1 = e_i.first_member
+        a2 = e_i.second_member
+        a3 = e_j.first_member
+        a4 = e_j.second_member
+        first = ''
+        second = ''
+
+        if a1 in a3 or a3 in a1:
+            first = a1 if len(a1) < len(a3) else a3
+            second = a2 if len(a2) < len(a4) else a4
+        if a1 in a4 or a4 in a1:
+            first = a1 if len(a1) < len(a4) else a4
+            second = a2 if len(a2) < len(a3) else a3
+
+        if not first or not second:
+            return None
+
+        return Event(first_member=first, second_member=second, url='NORMALIZED_EVENT')
+
+    def telegram_connector(self, pairs, kind, info=None):
         """
 
         :param pairs: array of arrays: [[ev1, ev2],...]
+        :param kind: kind of sport
         :return:
         """
-        # get url from each event
         for pair in pairs:
-            mes = '{kind}: {events)'.format('\n'.join([e.__repr__() for e in pair]))
+            mes = '[{info}] '.format(info=info) if info else ''
+            mes += '[{info}] {kind}: {events)'.format(kind=kind, events='\n'.join([e.__repr__() for e in pair]))
+            logger.warning('Try to send message - {mes}'.format(mes=mes))
             self._bot.post_message_in_channel(message=mes, channel=config.WINLINE_ALERT_CHANNEL)
 
 
 if __name__ == "__main__":
-    # telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
-    # c = Controller(bot=telegram_pusher)
-    # c.run()
-    Controller(bot='STUB').run()
+    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    c = Controller(bot=telegram_pusher)
+    c.run()
+    # Controller(bot='STUB').run()
 
