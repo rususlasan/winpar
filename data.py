@@ -44,7 +44,7 @@ class Event:
     def eq_with_include(self, other, is_url_comparing=False):
         """
         compare with check that some str maybe in another string ("Some Team" == "Some Team(some info)"),
-        also compare url
+        also compare url if needed
         :param other: Event instance for comparing
         :param is_url_comparing: if True - Event's urls will be compared too
         :return:

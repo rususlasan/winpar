@@ -134,8 +134,10 @@ class Controller:
     @staticmethod
     def search_statistic_logging(curr_iter, events_dict):
         mes = 'Iteration #{ci} results: '.format(ci=curr_iter)
-        for key in events_dict:
-            mes += '{title}({count}), '.format(title=key, count=len(events_dict[key]))
+        import collections
+        od = collections.OrderedDict(sorted(events_dict.items()))
+        for key in od:
+            mes += '{title}({count}), '.format(title=key, count=len(od[key]))
         logger.info(mes[0:-2])
 
     def get_data(self):
@@ -156,27 +158,17 @@ class Controller:
 
         # for each title of sports search events
         for title in kind_of_sports:
-            self.scroll_to('0')  # scroll to the top of the window
-            logger.info('SLEEPING BEFORE CLICKING ON {title} - 10 SEC'.format(title=title))
-            time.sleep(10)
-            try:
-                if previous_element:
-                    logger.info('SLEEP 5 sec after previous element clicking')
-                    previous_element.click()
-                    time.sleep(5)
-                current_element = kind_of_sports[title]
-                previous_element = current_element
-                current_element.click()
-                logger.info('SLEEPING AFTER CLICKING {title} 10 SEC'.format(title=title))
-                time.sleep(10)
-            except Exception as e:
-                logger.error('Want to click {title}. Could not click on the element : {err}'.format(title=title, err=e))
-                continue
+            if previous_element:
+                self.click_to_top_element(element=previous_element, title='PREV_EL')
+
+            current_element = kind_of_sports[title]
+            previous_element = current_element
+            self.click_to_top_element(element=current_element, title=title)
 
             events = self.event_searching(title)             # MAIN LINE
             # events = self.event_searching_by_xpath(title)  # ALTERNATIVE
 
-            logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
+            # logger.info('For sport \"{title}\" found {count} events'.format(title=title, count=len(events)))
             kind_of_sports_events_mapping[title] = events
 
         return kind_of_sports_events_mapping
@@ -213,22 +205,18 @@ class Controller:
         start_time = time.time()
 
         while time.time() - start_time < config.DATA_SEARCHING_TIMEOUT_SEC:
-            logger.info('SLEEPING BEFORE SEARCHING EVENTS OR AFTER SCROLLING 10 SEC')
-            time.sleep(10)  # config.DOCUMENT_SCROLL_TIMEOUT_SEC
-
             # search all events placed in page
+            time.sleep(3)
             ev = []
             try:
                 # ev = self._driver.find_elements_by_xpath("//div[@class='statistic__wrapper']")
                 # htmls = [el.get_attribute('innerHTML') for el in ev]
-                logger.debug('Search events for title {title}'.format(title=title))
                 ev = self._driver.find_elements_by_class_name(config.WINLINE_EVENT_CLASS_NAME)
             except Exception as e:
                 logger.exception('Could not find element with class name {class_name}: {err}.'
                                  .format(class_name=config.WINLINE_EVENT_CLASS_NAME, err=e))
             finally:
                 if not ev:
-                    logger.warning('For {title} could not find any HTML elements'.format(title=title))
                     return events
 
             current_finds = set(ev)
@@ -245,11 +233,9 @@ class Controller:
                         continue
                     events += [event]
                 if errors:
-                    percent = errors * 100 / len(new_events)
-                    logger.warning('Tried to parse {all} events but got {err} errors [{percent}%]'
-                                   .format(all=len(new_events), err=errors, percent=percent))
+                    logger.warning('Tried to parse {all} events but got {err} errors.'
+                                   .format(all=len(new_events), err=errors))
             else:
-                # logger.info('Scrolled down....\nTotal find events - %d' % len(uniq))
                 break
 
             self.scroll_to("document.body.scrollHeight")
@@ -314,6 +300,7 @@ class Controller:
 
         return events
 
+    # !!! ALTERNATIVE !!!
     @staticmethod
     def parse_html_element_to_event(html):
         import re
@@ -334,12 +321,33 @@ class Controller:
         logger.info('Created: %s' % e)
         return e
 
+    def click_to_top_element(self, element, title):
+        try:
+            self.scroll_to(to='0')
+            element.click()
+            time.sleep(2)
+        except Exception as e:
+            logger.error('Could not click on the element with title {title} : {err}'.format(title=title, err=e))
+
     def scroll_to(self, to):
         script = "window.scrollTo(0, %s);" % to
         try:
             self._driver.execute_script(script)
         except Exception as e:
             logger.error('Could not execute javascript for scrolling: {err}'.format(err=e))
+        time.sleep(2)
+
+    def wait_ajax(self):
+        curr = 0
+
+        while curr < 10:
+            res = self._driver.execute_script(script='return jQuery.active')
+            if res != 0:
+                logger.warning('There is/are {count} jQuery requests'.format(count=res))
+                curr += 1
+                time.sleep(0.5)
+            else:
+                break
 
     @staticmethod
     def parse_element_to_event(element):
