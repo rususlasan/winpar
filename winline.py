@@ -488,7 +488,7 @@ class Controller:
 
 
 if __name__ == "__main__":
-    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN, config.WINLINE_ALERT_CHANNEL_NAME)
+    telegram_pusher = TelegramPusher(config.WINLINE_BOT_TOKEN)
     c = Controller(bot=telegram_pusher)
     c.run()
     # Controller(bot='STUB').run()
