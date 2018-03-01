@@ -453,10 +453,10 @@ class Controller:
         :param e_j: Event instance
         :return:
         """
-        a1 = e_i.first_member
-        a2 = e_i.second_member
-        a3 = e_j.first_member
-        a4 = e_j.second_member
+        a1 = e_i.first_member.lower()
+        a2 = e_i.second_member.lower()
+        a3 = e_j.first_member.lower()
+        a4 = e_j.second_member.lower()
         first = ''
         second = ''
 
