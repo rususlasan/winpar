@@ -408,16 +408,15 @@ class Controller:
 
             j = 0
             while j < len(events):
+                j += 1
                 if j - 1 == i:
                     continue
 
                 e_i = events[i]
-                e_j = events[j]
+                e_j = events[j-1]
 
                 u_i = e_i.url
                 u_j = e_j.url
-
-                j += 1
 
                 if sorted([u_i, u_j]) in compared:
                     continue
