@@ -356,6 +356,7 @@ class Controller:
             :param element: DOM-object, WebElement type
             :return: event object
         """
+        title = ''
         try:
             url = element.get_attribute("href")
             title = element.get_attribute("title")
@@ -363,7 +364,8 @@ class Controller:
             logger.info('Created: {}/{}:[{}]'.format(first, second, url))
             return Event(first, second, url)
         except Exception as e:
-            logger.error('Could not took some info from element: {err}. None will be returned.'.format(err=e))
+            logger.error('Could not took some info from element (title-[{title}]): {err}. None will be returned.'
+                         .format(err=e, title=title))
             return None
 
     @staticmethod
