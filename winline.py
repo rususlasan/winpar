@@ -114,14 +114,14 @@ class Controller:
                         pairs = Controller.data_analyzer(events)
                         if pairs:
                             logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
-                                        .format(count=len(pairs), kind=kind), pairs)
+                                        .format(count=len(pairs), kind=kind, pairs=pairs))
                             self.telegram_connector(pairs=pairs, kind=kind)
                         # second algorithm
                         pairs = Controller.search_duplicate_events(events)
                         if pairs:
                             logger.info('[NEW ALGORITHM] Same events were found({count}) in sport \"{kind}\". '
                                         'There are: \n{pairs}'
-                                        .format(count=len(pairs), kind=kind), pairs)
+                                        .format(count=len(pairs), kind=kind, pairs=pairs))
                             self.telegram_connector(pairs=pairs, kind=kind, info='NEW ALGORITHM')
             else:
                 logger.info('Empty dict was returned')
