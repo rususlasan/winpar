@@ -418,7 +418,7 @@ class Controller:
                 u_i = e_i.url
                 u_j = e_j.url
 
-                if sorted([u_i, u_j]) in compared:
+                if sorted([u_i, u_j]) in compared or u_i == u_j:
                     continue
                 else:
                     compared.append(sorted([u_i, u_j]))
@@ -481,7 +481,7 @@ class Controller:
         """
         for pair in pairs:
             mes = '[{info}] '.format(info=info) if info else ''
-            mes += '[{info}] {kind}: {events)'.format(kind=kind, events='\n'.join([e.__repr__() for e in pair]))
+            mes += '{kind}: {events)'.format(kind=kind, events='\n'.join([e.__repr__() for e in pair]))
             logger.warning('Try to send message - {mes}'.format(mes=mes))
             self._bot.post_message_in_channel(message=mes, channel=config.WINLINE_ALERT_CHANNEL)
 
