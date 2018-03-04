@@ -4,6 +4,7 @@ class Event:
         self._first_member = first_member.strip()
         self._second_member = second_member.strip()
         self._url = url.strip()
+        self.id = self.url.split('/')[-2]
 
     def __eq__(self, other):
         """
@@ -37,9 +38,8 @@ class Event:
     def url(self):
         return self._url
 
-    @url.setter
-    def url(self, url):
-        self.url = url
+    def get_id(self):
+        return self.id
 
     def eq_with_include(self, other, is_url_comparing=False):
         """

@@ -1,5 +1,6 @@
 import os
 import time
+import datetime
 import threading
 import subprocess
 
@@ -25,6 +26,7 @@ class Controller:
         logger.info('==================== Start application... ====================')
         self._bot = bot
         self._bot_current_elapsed_time = time.time()
+        self.pairs_cache = {}       # key - str that contains events ids, value - date when found
         os.environ['MOZ_HEADLESS'] = '1'
 
     @property
@@ -110,13 +112,6 @@ class Controller:
                 for kind in events_mapping:
                     events = events_mapping[kind]
                     if events:
-                        # first algorithm
-                        pairs = Controller.data_analyzer(events)
-                        if pairs:
-                            logger.info('Same events were found({count}) in sport \"{kind}\". There are: \n{pairs}'
-                                        .format(count=len(pairs), kind=kind, pairs=pairs))
-                            self.telegram_connector(pairs=pairs, kind=kind)
-                        # second algorithm
                         pairs = Controller.search_duplicate_events(events)
                         if pairs:
                             logger.info('[NEW ALGORITHM] Same events were found({count}) in sport \"{kind}\". '
@@ -130,6 +125,13 @@ class Controller:
 
             time.sleep(config.DATA_EXPORT_TIMEOUT_SEC)
             counter += 1
+
+    def check_cache(self, pairs):
+        if not pairs:
+            self.flush_pairs_cache()
+
+    def flush_pairs_cache(self):
+        pass
 
     @staticmethod
     def search_statistic_logging(curr_iter, events_dict):
@@ -337,18 +339,6 @@ class Controller:
             logger.error('Could not execute javascript for scrolling: {err}'.format(err=e))
         time.sleep(2)
 
-    def wait_ajax(self):
-        curr = 0
-
-        while curr < 10:
-            res = self._driver.execute_script(script='return jQuery.active')
-            if res != 0:
-                logger.warning('There is/are {count} jQuery requests'.format(count=res))
-                curr += 1
-                time.sleep(0.5)
-            else:
-                break
-
     @staticmethod
     def parse_element_to_event(element):
         """
@@ -419,13 +409,13 @@ class Controller:
                 e_i = events[i]
                 e_j = events[j-1]
 
-                u_i = e_i.url
-                u_j = e_j.url
+                id_i = e_i.id
+                id_j = e_j.id
 
-                if sorted([u_i, u_j]) in compared or u_i == u_j:
+                if sorted([id_i, id_j]) in compared or id_i == id_j:
                     continue
                 else:
-                    compared.append(sorted([u_i, u_j]))
+                    compared.append(sorted([id_i, id_j]))
 
                 if e_i.eq_with_include(e_j):
 
@@ -487,6 +477,7 @@ class Controller:
 
         :param pairs: array of arrays: [[ev1, ev2],...]
         :param kind: kind of sport
+        :param info: addition info
         :return:
         """
         for pair in pairs:
