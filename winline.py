@@ -483,7 +483,7 @@ class Controller:
         """
         for pair in pairs:
             mes = '[{info}] '.format(info=info) if info else ''
-            mes += '{kind}: {events)'.format(kind=kind, events='\n'.join([e.__repr__() for e in pair]))
+            mes += '{kind}: {events}'.format(kind=kind, events='\n'.join([e.__repr__() for e in pair]))
             logger.warning('Try to send message - {mes}'.format(mes=mes))
             self._bot.post_message_in_channel(message=mes, channel=config.WINLINE_ALERT_CHANNEL)
 
