@@ -362,6 +362,8 @@ class Controller:
             title = element.get_attribute("title")
             first, second = title.split(" - ")
             logger.info('Created: {}/{}:[{}]'.format(first, second, url))
+            if not (url and first and second):
+                logger.error('Some info parsed as empty string: [{f}][{s}][{url}]'.format(f=first, s=second, url=url))
             return Event(first, second, url)
         except Exception as e:
             logger.error('Could not took some info from element (title-[{title}]): {err}. None will be returned.'
@@ -471,6 +473,12 @@ class Controller:
 
         if not first or not second:
             return None
+
+        sorted_members = sorted([first, second])
+        first = sorted_members[0]
+        second = sorted_members[1]
+
+        logger.info('Created normalized: {f} - {s}: {url}'.format(f=first, s=second, url='NORMALIZED_EVENT'))
 
         return Event(first_member=first, second_member=second, url='NORMALIZED_EVENT')
 
