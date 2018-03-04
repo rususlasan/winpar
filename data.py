@@ -1,10 +1,17 @@
+from config import logger
+
+
 class Event:
 
     def __init__(self, first_member, second_member, url):
         self._first_member = first_member.strip()
         self._second_member = second_member.strip()
         self._url = url.strip()
-        self.id = self.url.split('/')[-2]
+        try:
+            self.id = self.url.split('/')[-2]
+        except IndexError as e:
+            logger.error('Could not get id from url - {url}'.format(url=url))
+            self.id = 'DEFAULT'
 
     def __eq__(self, other):
         """
