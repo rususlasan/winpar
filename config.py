@@ -9,14 +9,15 @@ WINLINE_ALIVE_MESSAGE_CHANNEL = '@winline_bot_alive_mes'  # alive messages will 
 # common telegram parameters
 SEND_MESSAGE_ATTEMPT_TIMEOUT_SEC = 10                     # timeout before next attempt of sending message
 SEND_MESSAGE_ATTEMPT_MAX = 5                              # count of attempts for sending message in channel
-SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60                  # timeout after which alive message will be send
+SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60 * 2                 # timeout after which alive message will be send
 
 # winline data scrapping parameters
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
 WINLINE_EVENT_CLASS_NAME = 'statistic__match'
+WINLINE_SPORT_KIND_CLASS_NAME = 'sorting__item'
 WAIT_ELEMENT_TIMEOUT_SEC = 60
 DATA_SEARCHING_TIMEOUT_SEC = 150         # max time that allocated for searching, if timeout exceeded method interrupts
-DATA_EXPORT_TIMEOUT_SEC = 120            # timeout between data searching(iteration)
+DATA_EXPORT_TIMEOUT_SEC = 5            # timeout between data searching(iteration)
 DOCUMENT_SCROLL_TIMEOUT_SEC = 2          # timeout between document scrolling
 
 # driver settings

@@ -1,9 +1,17 @@
+from config import logger
+
+
 class Event:
 
     def __init__(self, first_member, second_member, url):
         self._first_member = first_member.strip()
         self._second_member = second_member.strip()
         self._url = url.strip()
+        try:
+            self.id = self.url.split('/')[-2]
+        except IndexError as e:
+            logger.error('Could not get id from url - {url}'.format(url=url))
+            self.id = 'DEFAULT'
 
     def __eq__(self, other):
         """
@@ -37,8 +45,23 @@ class Event:
     def url(self):
         return self._url
 
-    @url.setter
-    def url(self, url):
-        self.url = url
+    def get_id(self):
+        return self.id
 
+    def eq_with_include(self, other, is_url_comparing=False):
+        """
+        compare with check that some str maybe in another string ("Some Team" == "Some Team(some info)"),
+        also compare url if needed
+        :param other: Event instance for comparing
+        :param is_url_comparing: if True - Event's urls will be compared too
+        :return:
+        """
+        url_influence = True if not is_url_comparing else self.url == other.url
 
+        f1 = self.first_member
+        s1 = self.second_member
+        f2 = other.first_member
+        s2 = other.second_member
+
+        return ((f1 in f2 or f2 in f1) and (s1 in s2 or s2 in s1)) or \
+               ((f1 in s2 or s2 in f1) and (s1 in f2 or f2 in s1)) and url_influence
