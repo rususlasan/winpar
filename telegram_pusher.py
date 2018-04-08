@@ -43,7 +43,7 @@ class TelegramPusher:
                     .format(message=message, channel=channel))
         while current_attempt <= config.SEND_MESSAGE_ATTEMPT_MAX:
             try:
-                self.bot.send_message(chat_id=channel, text='[Second-BOT] %s' % message)
+                self.bot.send_message(chat_id=channel, text='[BOT] %s' % message)
                 logger.info('Message send successfully.')
                 return True
             except Exception as e:

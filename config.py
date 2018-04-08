@@ -9,7 +9,7 @@ WINLINE_ALIVE_MESSAGE_CHANNEL = '@winline_bot_alive_mes'  # alive messages will 
 # common telegram parameters
 SEND_MESSAGE_ATTEMPT_TIMEOUT_SEC = 10                     # timeout before next attempt of sending message
 SEND_MESSAGE_ATTEMPT_MAX = 5                              # count of attempts for sending message in channel
-SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60 * 3                 # timeout after which alive message will be send
+SEND_ALIVE_MESSAGE_TIMEOUT_SEC = 60 * 60 * 2                 # timeout after which alive message will be send
 
 # winline data scrapping parameters
 WINLINE_LIVE_URL = 'https://winline.ru/now/'
