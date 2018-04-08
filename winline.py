@@ -117,7 +117,7 @@ class Controller:
                             logger.info('Same events were found({count}) in sport \"{kind}\". '
                                         'There are: \n{pairs}'
                                         .format(count=len(pairs), kind=kind, pairs=pairs))
-                            self.telegram_connector(pairs=pairs, kind=kind, 1='NEW ALGORITHM')
+                            self.telegram_connector(pairs=pairs, kind=kind, info='NEW ALGORITHM')
             else:
                 logger.info('Empty dict was returned')
 
